@@ -1,0 +1,89 @@
+node_modules/
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime files
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Output of 'npm pack'
+*.tgz
+
+# Next.js build output
+.next/
+out/
+dist/
+.next/cache
+
+# Vercel
+.vercel
+
+# Netlify
+.netlify
+
+# Cloudflare Pages
+.cloudflare
+
+# Cloudflare Workers
+.wrangler
+
+# AWS
+.aws
+
+# Azure
+.azurerm
+
+# GCP
+.gcp
+
+# Google Cloud AI Platform
+.gcloudignore
+
+# Google Cloud Platform SDK
+.sconsign.dblite3
+.sconsign.dblite3.bak
+
+# Firebase
+.firebase
+
+# Prisma
+.prisma
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+*.iws
+*.iws
+*.iws
+
+
+resources/
