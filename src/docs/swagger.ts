@@ -19,8 +19,8 @@ export const swaggerDocument = {
     description:
       'Documentation officielle et interactive de l\'API REST du systeme de gestion de l\'infirmerie de la Banque Centrale de la Republique de Guinee (BCRG).\n\nCette API prend en charge la gestion des utilisateurs, l\'authentification securisee par matricule, les profils collaborateurs, les consultations cliniques, les constantes vitales et la tracabilite des acces.',
     contact: {
-      name: 'Direction des Systemes d\'Information - BCRG',
-      email: 'support.dsi@bcrg.guinee.org',
+      name: 'Direction des Systemes d\'Information | Mamadou BANO Barry - BCRG',
+      email: 'mamadoub.barry@bcrg-guinee.org',
     },
   },
   servers: [
