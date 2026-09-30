@@ -31,7 +31,7 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET doit comporter au moins 16 caracteres'),
 
   /** Duree de validite du jeton d'acces */
-  JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
+  JWT_ACCESS_EXPIRES_IN: z.string().default('1h'),
 
   /** Duree de validite du jeton de rafraichissement */
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
