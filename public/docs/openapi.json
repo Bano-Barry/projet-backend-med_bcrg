@@ -326,7 +326,7 @@
                 "phone": "+224627000000",
                 "gender": "M",
                 "department": "Direction des Systèmes d'Information",
-                "jobTitle": "Stagiaire DSI",
+                "jobTitle": "Ingénieur Logiciel DSI",
                 "bloodGroup": "O+",
                 "medicalHistory": "Asthme modere dans l'enfance, aucun antecedent chirurgical."
               }
@@ -1061,7 +1061,7 @@
                   },
                   "jobTitle": {
                     "type": "string",
-                    "example": "Stagiaire DSI"
+                    "example": "Ingénieur Logiciel DSI"
                   }
                 }
               }
@@ -1147,7 +1147,7 @@
           },
           "jobTitle": {
             "type": "string",
-            "example": "Stagiaire DSI"
+            "example": "Ingénieur Logiciel DSI"
           },
           "bloodGroup": {
             "type": "string",
@@ -1328,7 +1328,7 @@
               },
               "jobTitle": {
                 "type": "string",
-                "example": "Stagiaire DSI"
+                "example": "Ingénieur Logiciel DSI"
               },
               "bloodGroup": {
                 "type": "string",
@@ -1433,7 +1433,7 @@
                 },
                 "jobTitle": {
                   "type": "string",
-                  "example": "Stagiaire DSI"
+                  "example": "Ingénieur Logiciel DSI"
                 },
                 "user": {
                   "type": "object",
