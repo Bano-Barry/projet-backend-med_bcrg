@@ -15,6 +15,7 @@ import { env } from './config/env';
 import { errorHandler } from './core/middlewares/error.middleware';
 import { NotFoundError } from './core/errors';
 import { authRoutes } from './modules/auth/auth.routes';
+import { patientsRoutes } from './modules/patients/patients.routes';
 import { setupSwagger } from './docs/swagger';
 
 /**
@@ -64,8 +65,9 @@ export const createApp = (): Application => {
       status: 'UP',
       description: 'Systeme de gestion de l\'infirmerie de la Banque Centrale de la Republique de Guinee',
       endpoints: {
-        health: '/api/health',
+        // health: '/api/health',
         auth: '/api/auth',
+        patients: '/api/patients',
         docs: '/api/docs',
       },
     });
@@ -83,6 +85,7 @@ export const createApp = (): Application => {
 
   // Enregistrement des modules de l'API REST
   app.use('/api/auth', authRoutes);
+  app.use('/api/patients', patientsRoutes);
 
   // Interception des routes non referencees (404)
   app.use((req: Request, _res: Response, next: NextFunction) => {

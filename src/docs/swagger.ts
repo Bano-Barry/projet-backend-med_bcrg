@@ -39,6 +39,10 @@ export const swaggerDocument = {
       description: 'Gestion des sessions, connexion par matricule et mot de passe initial.',
     },
     {
+      name: 'Patients',
+      description: 'Gestion des dossiers medicaux collaborateurs, fiches de suivi et profil d\'allergies.',
+    },
+    {
       name: 'Supervision',
       description: 'Endpoints techniques de disponibilite et d\'informations systeme.',
     },
@@ -71,28 +75,28 @@ export const swaggerDocument = {
         },
       },
     },
-    '/api/health': {
-      get: {
-        tags: ['Supervision'],
-        summary: 'Verification de sante du serveur',
-        description: 'Controle si le service backend est actif et operationnel.',
-        responses: {
-          200: {
-            description: 'Serveur en ligne.',
-            content: {
-              'application/json': {
-                example: {
-                  status: 'UP',
-                  service: 'backend-med-bcrg',
-                  timestamp: '2026-09-30T09:00:00.000Z',
-                  environment: 'development',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    // '/api/health': {
+    //   get: {
+    //     tags: ['Supervision'],
+    //     summary: 'Verification de sante du serveur',
+    //     description: 'Controle si le service backend est actif et operationnel.',
+    //     responses: {
+    //       200: {
+    //         description: 'Serveur en ligne.',
+    //         content: {
+    //           'application/json': {
+    //             example: {
+    //               status: 'UP',
+    //               service: 'backend-med-bcrg',
+    //               timestamp: '2026-09-30T09:00:00.000Z',
+    //               environment: 'development',
+    //             },
+    //           },
+    //         },
+    //       },
+    //     },
+    //   },
+    // },
     '/api/auth/login': {
       post: {
         tags: ['Authentification'],
@@ -107,7 +111,7 @@ export const swaggerDocument = {
                 $ref: '#/components/schemas/LoginInput',
               },
               example: {
-                matricule: '1958',
+                matricule: '2004',
                 password: 'ChangeMe@2026!',
               },
             },
@@ -323,6 +327,439 @@ export const swaggerDocument = {
         },
       },
     },
+    '/api/patients': {
+      post: {
+        tags: ['Patients'],
+        summary: 'Enrolement d\'un collaborateur (creation de dossier medical)',
+        description:
+          'Cree le dossier medical d\'un employe BCRG et genere son compte utilisateur s\'il n\'existe pas encore. Reserve aux soignants (DOCTOR) et aux administrateurs RH (HR).',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreatePatientInput' },
+              example: {
+                matricule: '2004',
+                firstName: 'Mamadou BANO',
+                lastName: 'BARRY',
+                email: 'mamadoub.barry@bcrg-guinee.org',
+                phone: '+224627000000',
+                gender: 'M',
+                department: 'Direction des Systèmes d\'Information',
+                jobTitle: 'Ingénieur Logiciel DSI',
+                bloodGroup: 'O+',
+                medicalHistory: 'Asthme modere dans l\'enfance, aucun antecedent chirurgical.',
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Patient enrole avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PatientDetailResponse' },
+              },
+            },
+          },
+          400: {
+            description: 'Donnees de requete invalides ou manquantes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Non authentifie : jeton absent ou expire.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Droits insuffisants ou mot de passe initial non modifie.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          409: {
+            description: 'Conflit : matricule, email ou numero de telephone deja associe a un compte existant.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+      get: {
+        tags: ['Patients'],
+        summary: 'Recherche et liste paginee des dossiers collaborateurs',
+        description:
+          'Permet aux professionnels de sante de filtrer et rechercher les patients par matricule, nom, prenom ou direction d\'affectation.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'search',
+            in: 'query',
+            description: 'Recherche par nom, prenom ou matricule',
+            schema: { type: 'string' },
+          },
+          {
+            name: 'department',
+            in: 'query',
+            description: 'Filtre par direction ou service',
+            schema: { type: 'string' },
+          },
+          {
+            name: 'page',
+            in: 'query',
+            description: 'Numero de page (defaut: 1)',
+            schema: { type: 'integer', default: 1 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            description: 'Nombre de resultats par page (defaut: 20)',
+            schema: { type: 'integer', default: 20 },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Liste des patients recuperee avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PatientListResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Non authentifie : jeton absent ou expire.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Droits insuffisants : acces reserve aux soignants et aux gestionnaires RH.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/patients/me': {
+      get: {
+        tags: ['Patients'],
+        summary: 'Fiche medicale de l\'employe connecte',
+        description:
+          'Permet au collaborateur authentifie de consulter sa propre fiche patient et ses allergies en toute confidentialite.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Fiche du collaborateur connecte recuperee avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PatientDetailResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Non authentifie : jeton absent ou expire.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Aucun dossier medical associe a ce compte.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/patients/{id}': {
+      get: {
+        tags: ['Patients'],
+        summary: 'Consultation detaillee d\'un dossier patient par identifiant',
+        description:
+          'Accessible aux soignants (DOCTOR), administrateurs RH (HR) ou a l\'employe concerne par son propre dossier (protection anti-BOLA).',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant unique du dossier patient (UUID)',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Dossier patient trouve.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PatientDetailResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Non authentifie : jeton absent ou expire.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Acces refuse : secret medical / BOLA.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Dossier patient introuvable.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        tags: ['Patients'],
+        summary: 'Mise a jour des informations d\'un dossier patient',
+        description:
+          'Permet au personnel soignant de modifier la direction, le poste, le numero de telephone, le groupe sanguin ou les antecedents medicaux.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant unique du dossier patient (UUID)',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdatePatientInput' },
+              example: {
+                phone: '+224627000000',
+                department: 'Direction des Systèmes d\'Information',
+                jobTitle: 'Ingénieur Logiciel DSI',
+                bloodGroup: 'O+',
+                medicalHistory: 'Asthme modere dans l\'enfance, aucun antecedent chirurgical.',
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Dossier patient mis a jour avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PatientDetailResponse' },
+              },
+            },
+          },
+          400: {
+            description: 'Donnees de mise a jour invalides.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Non authentifie : jeton absent ou expire.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Droits insuffisants.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Dossier patient introuvable.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          409: {
+            description: 'Conflit : ce numero de telephone est deja utilise par un autre patient ou compte.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/patients/{id}/allergies': {
+      post: {
+        tags: ['Patients'],
+        summary: 'Ajout d\'une allergie au dossier patient',
+        description:
+          'Enregistre une allergie classee (medicamenteuse, alimentaire, professionnelle) avec niveau de severite (MILD, MODERATE, SEVERE). Reserve au personnel soignant.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant unique du dossier patient (UUID)',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AddPatientAllergyInput' },
+              example: {
+                allergyType: 'DRUG',
+                substance: 'Penicilline',
+                reactionDetails: 'Urticaire generalisee et oedeme de Quincke',
+                severity: 'SEVERE',
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Allergie enregistree.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AllergyDetailResponse' },
+              },
+            },
+          },
+          400: {
+            description: 'Donnees d\'allergie invalides.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Non authentifie : jeton absent ou expire.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Droits soignants requis.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Dossier patient introuvable.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/patients/{id}/allergies/{allergyId}': {
+      delete: {
+        tags: ['Patients'],
+        summary: 'Suppression d\'une allergie du dossier',
+        description: 'Retire une allergie du dossier patient. Reserve au personnel soignant.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant du dossier patient (UUID)',
+            schema: { type: 'string', format: 'uuid' },
+          },
+          {
+            name: 'allergyId',
+            in: 'path',
+            required: true,
+            description: 'Identifiant de l\'allergie a retirer (UUID)',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Allergie retiree avec succes.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  message: 'Allergie retiree du dossier avec succes.',
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Non authentifie : jeton absent ou expire.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Droits soignants requis.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Allergie introuvable.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -341,7 +778,7 @@ export const swaggerDocument = {
           matricule: {
             type: 'string',
             description: 'Matricule officiel BCRG (chiffres uniquement)',
-            example: '2007',
+            example: '2004',
           },
           password: {
             type: 'string',
@@ -379,7 +816,7 @@ export const swaggerDocument = {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: true },
-          message: { type: 'string', example: 'Authentification reussie.' },
+          message: { type: 'string', example: 'Bienvenue, Vous êtes connecté !' },
           data: {
             type: 'object',
             properties: {
@@ -387,11 +824,11 @@ export const swaggerDocument = {
                 type: 'object',
                 properties: {
                   id: { type: 'string', format: 'uuid' },
-                  matricule: { type: 'string', example: '2007' },
-                  email: { type: 'string', example: 'mamadoub.barry@bcrg.guinee.org' },
+                  matricule: { type: 'string', example: '2004' },
+                  email: { type: 'string', example: 'mamadoub.barry@bcrg-guinee.org' },
                   firstName: { type: 'string', example: 'Mamadou BANO' },
                   lastName: { type: 'string', example: 'BARRY' },
-                  role: { type: 'string', enum: ['ADMIN', 'DOCTOR', 'NURSE', 'EMPLOYEE', 'HR'], example: 'ADMIN' },
+                  role: { type: 'string', enum: ['DOCTOR', 'EMPLOYEE', 'HR'], example: 'HR' },
                   isFirstLogin: { type: 'boolean', example: true },
                 },
               },
@@ -414,12 +851,12 @@ export const swaggerDocument = {
             type: 'object',
             properties: {
               id: { type: 'string', format: 'uuid' },
-              matricule: { type: 'string', example: '2007' },
-              email: { type: 'string', example: 'mamadoub.barry@bcrg.guinee.org' },
+              matricule: { type: 'string', example: '2004' },
+              email: { type: 'string', example: 'mamadoub.barry@bcrg-guinee.org' },
               firstName: { type: 'string', example: 'Mamadou BANO' },
               lastName: { type: 'string', example: 'BARRY' },
-              role: { type: 'string', example: 'ADMIN' },
-              phone: { type: 'string', example: '+224620000001' },
+              role: { type: 'string', example: 'HR' },
+              phone: { type: 'string', example: '+224627000000' },
               isFirstLogin: { type: 'boolean', example: false },
               isActive: { type: 'boolean', example: true },
               lastLoginAt: { type: 'string', format: 'date-time' },
@@ -429,10 +866,10 @@ export const swaggerDocument = {
                 nullable: true,
                 properties: {
                   id: { type: 'string', format: 'uuid' },
-                  registrationNumber: { type: 'string', example: '2007' },
+                  registrationNumber: { type: 'string', example: '2004' },
                   gender: { type: 'string', example: 'M' },
-                  department: { type: 'string', example: 'DSI' },
-                  jobTitle: { type: 'string', example: 'Ingenieur Logiciel' },
+                  department: { type: 'string', example: 'Direction des Systèmes d\'Information' },
+                  jobTitle: { type: 'string', example: 'Ingénieur Logiciel DSI' },
                 },
               },
             },
@@ -443,8 +880,165 @@ export const swaggerDocument = {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: false },
-          message: { type: 'string', example: 'Identifiants de connexion incorrects' },
-          errors: { type: 'array', items: { type: 'object' }, nullable: true },
+          message: { type: 'string', example: 'Donnees envoyées non valides' },
+          errors: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                field: { type: 'string', example: 'phone' },
+                message: { type: 'string', example: 'Le format du numero de telephone est invalide' },
+              },
+            },
+            nullable: true,
+          },
+        },
+      },
+      CreatePatientInput: {
+        type: 'object',
+        required: ['matricule', 'firstName', 'lastName', 'gender', 'department', 'jobTitle'],
+        properties: {
+          matricule: { type: 'string', example: '2004' },
+          firstName: { type: 'string', example: 'Mamadou BANO' },
+          lastName: { type: 'string', example: 'BARRY' },
+          email: { type: 'string', format: 'email', description: 'Adresse email professionnelle unique', example: 'mamadoub.barry@bcrg-guinee.org' },
+          phone: { type: 'string', description: 'Numero de telephone unique du collaborateur', example: '+224627000000' },
+          gender: { type: 'string', enum: ['M', 'F'], example: 'M' },
+          department: { type: 'string', example: 'Direction des Systèmes d\'Information' },
+          jobTitle: { type: 'string', example: 'Ingénieur Logiciel DSI' },
+          bloodGroup: { type: 'string', enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], example: 'O+' },
+          medicalHistory: { type: 'string', example: 'Asthme modere dans l\'enfance, aucun antecedent chirurgical.' },
+        },
+      },
+      UpdatePatientInput: {
+        type: 'object',
+        properties: {
+          phone: { type: 'string', description: 'Nouveau numero de telephone unique', example: '+224627000000' },
+          department: { type: 'string', example: 'Direction des Systèmes d\'Information' },
+          jobTitle: { type: 'string', example: 'Ingénieur Logiciel DSI' },
+          bloodGroup: { type: 'string', enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], example: 'O+' },
+          medicalHistory: { type: 'string', example: 'Asthme modere dans l\'enfance, aucun antecedent chirurgical.' },
+        },
+      },
+      AddPatientAllergyInput: {
+        type: 'object',
+        required: ['allergyType', 'substance'],
+        properties: {
+          allergyType: {
+            type: 'string',
+            enum: ['DRUG', 'FOOD', 'OCCUPATIONAL', 'OTHER'],
+            example: 'DRUG',
+          },
+          substance: { type: 'string', example: 'Penicilline' },
+          reactionDetails: { type: 'string', example: 'Urticaire generalisee' },
+          severity: {
+            type: 'string',
+            enum: ['MILD', 'MODERATE', 'SEVERE'],
+            default: 'MODERATE',
+            example: 'SEVERE',
+          },
+        },
+      },
+      AllergyDetailResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          message: { type: 'string', example: 'Allergie enregistree au dossier medical.' },
+          data: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              patientId: { type: 'string', format: 'uuid' },
+              allergyType: { type: 'string', example: 'DRUG' },
+              substance: { type: 'string', example: 'Penicilline' },
+              reactionDetails: { type: 'string', example: 'Urticaire' },
+              severity: { type: 'string', example: 'SEVERE' },
+              createdAt: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      },
+      PatientDetailResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          message: { type: 'string', example: 'Collaborateur enrôlé avec succès.' },
+          data: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              userId: { type: 'string', format: 'uuid' },
+              registrationNumber: { type: 'string', example: '2004' },
+              gender: { type: 'string', example: 'M' },
+              phone: { type: 'string', example: '+224627000000' },
+              department: { type: 'string', example: 'Direction des Systèmes d\'Information' },
+              jobTitle: { type: 'string', example: 'Ingénieur Logiciel DSI' },
+              bloodGroup: { type: 'string', example: 'O+' },
+              medicalHistory: { type: 'string', example: 'Asthme modere dans l\'enfance, aucun antecedent chirurgical.' },
+              createdAt: { type: 'string', format: 'date-time' },
+              updatedAt: { type: 'string', format: 'date-time' },
+              user: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  matricule: { type: 'string', example: '2004' },
+                  firstName: { type: 'string', example: 'Mamadou BANO' },
+                  lastName: { type: 'string', example: 'BARRY' },
+                  email: { type: 'string', example: 'mamadoub.barry@bcrg-guinee.org' },
+                  phone: { type: 'string', example: '+224627000000' },
+                  role: { type: 'string', example: 'EMPLOYEE' },
+                },
+              },
+              allergies: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    allergyType: { type: 'string', example: 'DRUG' },
+                    substance: { type: 'string', example: 'Penicilline' },
+                    severity: { type: 'string', example: 'SEVERE' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      PatientListResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', format: 'uuid' },
+                registrationNumber: { type: 'string', example: '2004' },
+                department: { type: 'string', example: 'Direction des Systèmes d\'Information' },
+                jobTitle: { type: 'string', example: 'Ingénieur Logiciel DSI' },
+                user: {
+                  type: 'object',
+                  properties: {
+                    firstName: { type: 'string', example: 'Mamadou BANO' },
+                    lastName: { type: 'string', example: 'BARRY' },
+                    matricule: { type: 'string', example: '2004' },
+                  },
+                },
+                allergies: { type: 'array', items: { type: 'object' } },
+              },
+            },
+          },
+          pagination: {
+            type: 'object',
+            properties: {
+              page: { type: 'integer', example: 1 },
+              limit: { type: 'integer', example: 20 },
+              total: { type: 'integer', example: 1 },
+              totalPages: { type: 'integer', example: 1 },
+            },
+          },
         },
       },
     },

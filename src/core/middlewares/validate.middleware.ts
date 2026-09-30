@@ -35,7 +35,7 @@ export const validateRequest = (schema: AnyZodObject) => {
           field: err.path.slice(1).join('.'),
           message: err.message,
         }));
-        next(new BadRequestError('Donnees de requete non valides', formattedErrors));
+        next(new BadRequestError('Donnees envoyées non valides', formattedErrors));
       } else {
         next(error);
       }

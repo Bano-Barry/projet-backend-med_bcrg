@@ -17,24 +17,26 @@ async function main() {
   // Mot de passe temporaire initial par defaut
   const initialPasswordHash = await hashPassword('ChangeMe@2026!');
 
-  // 1. Creation du compte Administrateur systeme
+  // 1. Creation du compte Administrateur RH systeme
   const adminUser = await prisma.user.upsert({
     where: { matricule: '2007' },
-    update: {},
+    update: {
+      role: UserRole.HR,
+    },
     create: {
       matricule: '2007',
       email: 'mamadoub.barry@bcrg.guinee.org',
       passwordHash: initialPasswordHash,
       firstName: 'Mamadou BANO',
       lastName: 'BARRY',
-      role: UserRole.ADMIN,
+      role: UserRole.HR,
       phone: '+224620000001',
       isFirstLogin: true,
       isActive: true,
     },
   });
 
-  console.log(`Compte administrateur cree : ${adminUser.matricule} (Role: ${adminUser.role})`);
+  console.log(`Compte administrateur RH cree : ${adminUser.matricule} (Role: ${adminUser.role})`);
 
   // 2. Creation d'un compte Medecin initial
   const doctorUser = await prisma.user.upsert({

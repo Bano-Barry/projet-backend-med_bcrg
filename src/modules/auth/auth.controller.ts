@@ -29,7 +29,7 @@ export class AuthController {
 
       res.status(200).json({
         success: true,
-        message: 'Authentification reussie.',
+        message: 'Bienvenue, Vous êtes connecté !',
         data: result,
       });
     } catch (error) {
