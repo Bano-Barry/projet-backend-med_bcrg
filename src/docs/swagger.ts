@@ -17,7 +17,7 @@ export const swaggerDocument = {
     title: 'API Infirmerie BCRG',
     version: '1.0.0',
     description:
-      'Documentation officielle et interactive de l\'API REST du systeme de gestion de l\'infirmerie de la Banque Centrale de la Republique de Guinee (BCRG).\n\nCette API prend en charge la gestion des utilisateurs, l\'authentification securisee par matricule, les profils collaborateurs, les consultations cliniques, les constantes vitales et la tracabilite des acces.',
+      'Documentation officielle et interactive de l\'API REST du systeme de gestion de l\'infirmerie de la Banque Centrale de la Republique de Guinee (BCRG).\n\nCette API prend en charge la gestion des utilisateurs, l\'authentification securisee par matricule, les profils collaborateurs, les consultations cliniques, les constantes vitales et la tracabilite des acces.\n\n---\n\n**Ressources et Exports Disponibles :**\n- [Telecharger le schema OpenAPI au format JSON](/api/docs/download)\n- [Consulter la vue Redoc autonome (HTML)](/api/docs/redoc)',
     contact: {
       name: 'Direction des Systemes d\'Information | Mamadou BANO Barry - BCRG',
       email: 'mamadoub.barry@bcrg-guinee.org',
@@ -25,8 +25,12 @@ export const swaggerDocument = {
   },
   servers: [
     {
+      url: '/',
+      description: 'Serveur courant (auto-detecte en local ou en production)',
+    },
+    {
       url: 'http://localhost:5000',
-      description: 'Serveur de developpement local',
+      description: 'Environnement de developpement local',
     },
   ],
   tags: [
@@ -448,24 +452,58 @@ export const swaggerDocument = {
 };
 
 /**
- * Configure et monte l'interface interactive Swagger UI sur l'application Express.
+ * Configure et monte l'interface interactive Swagger UI et les exports statiques sur l'application Express.
  *
  * @param app Application Express
  */
 export const setupSwagger = (app: Application): void => {
-  // Mise a disposition du document OpenAPI brut au format JSON
+  // 1. Mise a disposition du document OpenAPI brut au format JSON
   app.get('/api/docs.json', (_req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerDocument);
   });
 
-  // Interface utilisateur interactive Swagger UI
+  // 2. Telechargement direct du fichier openapi-infirmerie-bcrg.json en piece jointe
+  app.get('/api/docs/download', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="openapi-med-bcrg.json"'
+    );
+    res.send(JSON.stringify(swaggerDocument, null, 2));
+  });
+
+  // 3. Vue autonome Redoc (documentation HTML statique haut de gamme pour partage direct)
+  app.get('/api/docs/redoc', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`<!DOCTYPE html>
+<html>
+  <head>
+    <title>Documentation API - MED BCRG</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+    <style>
+      body { margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <redoc spec-url='/api/docs.json'></redoc>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+  </body>
+</html>`);
+  });
+
+  // 4. Interface utilisateur interactive Swagger UI
   app.use(
     '/api/docs',
     swaggerUi.serve,
     swaggerUi.setup(swaggerDocument, {
       customSiteTitle: 'Documentation API - Infirmerie BCRG',
-      customCss: '.swagger-ui .topbar { display: none }',
+      customCss: `
+        .swagger-ui .topbar { display: none }
+        .swagger-ui .info { margin-bottom: 20px; }
+      `,
       swaggerOptions: {
         persistAuthorization: true,
       },

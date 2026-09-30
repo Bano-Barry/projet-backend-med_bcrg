@@ -6,6 +6,7 @@
  */
 
 import express, { Application, Request, Response, NextFunction } from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -48,6 +49,9 @@ export const createApp = (): Application => {
 
   // Analyse des cookies de session
   app.use(cookieParser());
+
+  // Fichiers statiques (documentation autonome, assets)
+  app.use('/static', express.static(path.resolve(__dirname, '../public')));
 
   // Configuration de la documentation interactive Swagger UI
   setupSwagger(app);
