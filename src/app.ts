@@ -13,6 +13,8 @@ import morgan from 'morgan';
 import { env } from './config/env';
 import { errorHandler } from './core/middlewares/error.middleware';
 import { NotFoundError } from './core/errors';
+import { authRoutes } from './modules/auth/auth.routes';
+import { setupSwagger } from './docs/swagger';
 
 /**
  * Cree et configure une nouvelle instance de l'application Express.
@@ -23,7 +25,11 @@ export const createApp = (): Application => {
   const app = express();
 
   // En-tetes de securite HTTP
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Necessaire pour le rendu des scripts et styles Swagger UI
+    })
+  );
 
   // Gestion du partage de ressources entre origines multiples (CORS)
   app.use(
@@ -43,6 +49,24 @@ export const createApp = (): Application => {
   // Analyse des cookies de session
   app.use(cookieParser());
 
+  // Configuration de la documentation interactive Swagger UI
+  setupSwagger(app);
+
+  // Point d'accueil et informations generales sur l'API
+  app.get('/', (_req: Request, res: Response) => {
+    res.status(200).json({
+      name: 'API Infirmerie BCRG',
+      version: '1.0.0',
+      status: 'UP',
+      description: 'Systeme de gestion de l\'infirmerie de la Banque Centrale de la Republique de Guinee',
+      endpoints: {
+        health: '/api/health',
+        auth: '/api/auth',
+        docs: '/api/docs',
+      },
+    });
+  });
+
   // Point de controle de disponibilite (Health Check)
   app.get('/api/health', (_req: Request, res: Response) => {
     res.status(200).json({
@@ -52,6 +76,9 @@ export const createApp = (): Application => {
       environment: env.NODE_ENV,
     });
   });
+
+  // Enregistrement des modules de l'API REST
+  app.use('/api/auth', authRoutes);
 
   // Interception des routes non referencees (404)
   app.use((req: Request, _res: Response, next: NextFunction) => {
