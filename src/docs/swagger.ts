@@ -25,16 +25,16 @@ export const swaggerDocument = {
   },
   servers: [
     {
-      url: 'http://localhost:5000',
-      description: 'Serveur de developpement local (Localhost)',
+      url: '/',
+      description: 'Serveur courant (auto-detecte par le navigateur)',
     },
     {
       url: 'https://backend-med-bcrg.onrender.com',
       description: 'Serveur de production / recette en ligne (Render)',
     },
     {
-      url: '/',
-      description: 'Serveur courant (auto-detecte par le navigateur)',
+      url: 'http://localhost:5000',
+      description: 'Serveur de developpement local (Localhost)',
     },
   ],
   tags: [

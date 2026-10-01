@@ -17,7 +17,7 @@ const app = createApp();
 const server = app.listen(env.PORT, () => {
   console.log(`Serveur Backend Infirmerie BCRG demarre avec succes.`);
   console.log(`Ecoute sur : http://localhost:${env.PORT}`);
-  console.log(`Health check : http://localhost:${env.PORT}/api/health`);
+  // console.log(`Health check : http://localhost:${env.PORT}/api/health`);
   console.log(`Environnement : ${env.NODE_ENV}`);
 });
 
