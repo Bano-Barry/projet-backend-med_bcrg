@@ -35,6 +35,23 @@ enum AllergySeverity {
   @@map("allergy_severity_enum")
 }
 
+enum ConsultationStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+
+  @@map("consultation_status_enum")
+}
+
+enum ConsultationType {
+  GENERAL
+  INSTANT
+  PERIODIC
+
+  @@map("consultation_type_enum")
+}
+
 // ==============================================================================
 // 1. UTILISATEURS & AUTHENTIFICATION
 // ==============================================================================
@@ -112,17 +129,19 @@ model PatientAllergy {
 // 4. CONSULTATIONS CLINIQUES (EF-3.1, EF-3.2)
 // ==============================================================================
 model Consultation {
-  id                  String   @id @default(uuid()) @db.Uuid
-  patientId           String   @map("patient_id") @db.Uuid
-  doctorId            String   @map("doctor_id") @db.Uuid
-  consultationDate    DateTime @default(now()) @map("consultation_date") @db.Timestamptz
-  reason              String   @db.Text
-  symptoms            String   @db.Text
-  physicalExamination String?  @map("physical_examination") @db.Text
-  diagnosis           String   @db.Text
-  advice              String?  @db.Text
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id                  String             @id @default(uuid()) @db.Uuid
+  patientId           String             @map("patient_id") @db.Uuid
+  doctorId            String             @map("doctor_id") @db.Uuid
+  consultationDate    DateTime           @default(now()) @map("consultation_date") @db.Timestamptz
+  type                ConsultationType   @default(GENERAL)
+  status              ConsultationStatus @default(IN_PROGRESS)
+  reason              String             @db.Text
+  symptoms            String             @db.Text
+  physicalExamination String?            @map("physical_examination") @db.Text
+  diagnosis           String?            @db.Text
+  advice              String?            @db.Text
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamptz
 
   patient          Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor           User              @relation("DoctorConsultations", fields: [doctorId], references: [id], onDelete: Restrict)
@@ -133,6 +152,8 @@ model Consultation {
 
   @@index([patientId])
   @@index([doctorId])
+  @@index([status])
+  @@index([consultationDate])
   @@map("consultations")
 }
 
@@ -170,7 +191,7 @@ model Prescription {
   consultationId String   @map("consultation_id") @db.Uuid
   medicationName String   @map("medication_name") @db.VarChar(150)
   dosage         String   @db.VarChar(100)
-  frequency      String   @db.VarChar(100)
+  frequency      String?  @db.VarChar(100)
   duration       String   @db.VarChar(50)
   instructions   String?  @db.Text
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz

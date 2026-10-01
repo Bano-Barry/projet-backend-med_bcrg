@@ -14,8 +14,16 @@ import morgan from 'morgan';
 import { env } from './config/env';
 import { errorHandler } from './core/middlewares/error.middleware';
 import { NotFoundError } from './core/errors';
+import { UserRole } from '@prisma/client';
 import { authRoutes } from './modules/auth/auth.routes';
 import { patientsRoutes } from './modules/patients/patients.routes';
+import { doctorRoutes } from './modules/doctor/doctor.routes';
+import { doctorConsultationsRoutes } from './modules/doctor/consultations/consultations.routes';
+import {
+  authenticate,
+  requireRoles,
+  requirePasswordChanged,
+} from './core/middlewares/auth.middleware';
 import { setupSwagger } from './docs/swagger';
 
 /**
@@ -65,9 +73,9 @@ export const createApp = (): Application => {
       status: 'UP',
       description: 'Systeme de gestion de l\'infirmerie de la Banque Centrale de la Republique de Guinee',
       endpoints: {
-        // health: '/api/health',
         auth: '/api/auth',
         employees: '/api/employees',
+        doctor: '/api/doctor',
         docs: '/api/docs',
       },
     });
@@ -86,6 +94,16 @@ export const createApp = (): Application => {
   // Enregistrement des modules de l'API REST
   app.use('/api/auth', authRoutes);
   app.use('/api/employees', patientsRoutes);
+  app.use('/api/doctor', doctorRoutes);
+
+  // Alias direct pour compatibilite avec les appels frontend /api/consultations
+  app.use(
+    '/api/consultations',
+    authenticate,
+    requirePasswordChanged,
+    requireRoles(UserRole.DOCTOR),
+    doctorConsultationsRoutes
+  );
 
   // Interception des routes non referencees (404)
   app.use((req: Request, _res: Response, next: NextFunction) => {

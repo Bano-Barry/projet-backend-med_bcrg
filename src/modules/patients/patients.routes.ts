@@ -43,7 +43,7 @@ router.use(requirePasswordChanged);
  */
 router.post(
   '/',
-  requireRoles(UserRole.HR),
+  requireRoles(UserRole.HR, UserRole.DOCTOR),
   validateRequest(createPatientSchema),
   patientsController.createPatient.bind(patientsController)
 );
@@ -54,7 +54,7 @@ router.post(
  */
 router.get(
   '/',
-  requireRoles(UserRole.HR),
+  requireRoles(UserRole.HR, UserRole.DOCTOR),
   validateRequest(listPatientsQuerySchema),
   patientsController.listPatients.bind(patientsController)
 );

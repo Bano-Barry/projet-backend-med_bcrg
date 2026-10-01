@@ -50,6 +50,14 @@ export const swaggerDocument = {
       name: 'Supervision',
       description: 'Endpoints techniques de disponibilite et d\'informations systeme.',
     },
+    {
+      name: 'Medecin - Consultations',
+      description: 'Espace clinique dedie au medecin (demarrage de consultation, constantes vitales, ordonnances et KPIs).',
+    },
+    {
+      name: 'Medecin - Dossiers & Recherche',
+      description: 'Recherche rapide de patients et consultation du dossier medical complet par le personnel soignant.',
+    },
   ],
   paths: {
     '/': {
@@ -764,6 +772,296 @@ export const swaggerDocument = {
         },
       },
     },
+    '/api/doctor/consultations/stats': {
+      get: {
+        tags: ['Medecin - Consultations'],
+        summary: 'Statistiques cles du dashboard medecin',
+        description: 'Retourne les indicateurs temps reel (consultations du mois, urgences recentes, en attente/en cours aujourd\'hui).',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Statistiques recuperees avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ConsultationStatsResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Non authentifie.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Acces reserve au role DOCTOR.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/doctor/consultations': {
+      get: {
+        tags: ['Medecin - Consultations'],
+        summary: 'Liste filtree et paginee des consultations',
+        description: 'Permet au medecin de rechercher et filtrer les consultations par patient, matricule, diagnostic, date, type et statut.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'search', in: 'query', description: 'Recherche patient, matricule, diagnostic', schema: { type: 'string' } },
+          { name: 'type', in: 'query', description: 'Type de consultation', schema: { type: 'string', enum: ['GENERAL', 'INSTANT', 'PERIODIC'] } },
+          { name: 'status', in: 'query', description: 'Statut de la consultation', schema: { type: 'string', enum: ['WAITING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] } },
+          { name: 'date', in: 'query', description: 'Date de consultation (YYYY-MM-DD)', schema: { type: 'string' } },
+          { name: 'page', in: 'query', description: 'Numero de page', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', description: 'Resultats par page', schema: { type: 'integer', default: 20 } },
+        ],
+        responses: {
+          200: {
+            description: 'Liste des consultations recuperee avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ConsultationListResponse' },
+              },
+            },
+          },
+          401: { description: 'Non authentifie.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Acces reserve au personnel soignant (DOCTOR).', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+      post: {
+        tags: ['Medecin - Consultations'],
+        summary: 'Demarrer une nouvelle consultation',
+        description: 'Cree une nouvelle consultation clinique avec constantes vitales optionnelles (calcul automatique IMC).',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateConsultationInput' },
+              example: {
+                patientId: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+                type: 'GENERAL',
+                reason: 'Maux de tête persistants depuis 3 jours, légère fièvre.',
+                diagnosis: 'Céphalée de tension et fatigue générale',
+                advice: 'Repos recommandé, bonne hydratation',
+                vitals: {
+                  bloodPressure: '130/85',
+                  temperatureC: 37.8,
+                  heightCm: 178,
+                  weightKg: 75,
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Consultation demarree avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ConsultationDetailResponse' },
+              },
+            },
+          },
+          400: { description: 'Donnees invalides.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          401: { description: 'Non authentifie.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Reserve au personnel soignant.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
+    '/api/doctor/consultations/{id}': {
+      get: {
+        tags: ['Medecin - Consultations'],
+        summary: 'Detail d\'une consultation (tiroir clinique)',
+        description: 'Recupere l\'integralite des informations de la consultation : patient, constantes, ordonnances et diagnostic.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Identifiant UUID de la consultation', schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          200: {
+            description: 'Detail de la consultation recupere avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ConsultationDetailResponse' },
+              },
+            },
+          },
+          404: { description: 'Consultation introuvable.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+      patch: {
+        tags: ['Medecin - Consultations'],
+        summary: 'Mettre a jour ou cloturer une consultation',
+        description: 'Permet de mettre a jour le diagnostic, les notes ou de passer le statut a COMPLETED (TERMINEE).',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Identifiant UUID de la consultation', schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateConsultationInput' },
+              example: {
+                status: 'COMPLETED',
+                diagnosis: 'Céphalée de tension confirmée',
+                advice: 'Ordonnance délivrée, repos 48h',
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Consultation mise a jour avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ConsultationDetailResponse' },
+              },
+            },
+          },
+          404: { description: 'Consultation introuvable.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
+    '/api/doctor/consultations/{id}/prescriptions': {
+      post: {
+        tags: ['Medecin - Consultations'],
+        summary: 'Ajouter une prescription a l\'ordonnance',
+        description: 'Enregistre une ligne de prescription (medicament, posologie, duree).',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Identifiant UUID de la consultation', schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AddPrescriptionInput' },
+              example: {
+                medicationName: 'Paracétamol 1000mg',
+                dosage: '1 comprimé',
+                frequency: '3 fois par jour',
+                duration: '5 jours',
+                instructions: 'Au cours des repas',
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Prescription ajoutee avec succes.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  message: 'Prescription ajoutée à l\'ordonnance.',
+                  data: {
+                    id: 'f1e2d3c4-b5a6-7890-abcd-ef1234567890',
+                    medicationName: 'Paracétamol 1000mg',
+                    dosage: '1 comprimé',
+                    duration: '5 jours',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/doctor/consultations/{id}/prescriptions/{prescriptionId}': {
+      delete: {
+        tags: ['Medecin - Consultations'],
+        summary: 'Retirer une prescription de l\'ordonnance',
+        description: 'Supprime une ligne de prescription rattachee a la consultation.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Identifiant consultation', schema: { type: 'string', format: 'uuid' } },
+          { name: 'prescriptionId', in: 'path', required: true, description: 'Identifiant prescription', schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          200: {
+            description: 'Prescription retiree.',
+            content: {
+              'application/json': {
+                example: { success: true, message: 'Prescription retiree de l\'ordonnance avec succes.' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/doctor/patients/search': {
+      get: {
+        tags: ['Medecin - Dossiers & Recherche'],
+        summary: 'Autocompletion de recherche de patient',
+        description: 'Recherche rapide par nom, prenom ou matricule pour le formulaire de consultation.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'q', in: 'query', required: true, description: 'Terme de recherche (nom ou matricule)', schema: { type: 'string' } },
+          { name: 'limit', in: 'query', description: 'Nombre max de resultats (defaut: 10)', schema: { type: 'integer', default: 10 } },
+        ],
+        responses: {
+          200: {
+            description: 'Resultats de la recherche.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  data: [
+                    {
+                      id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+                      registrationNumber: 'MAT-2026-001',
+                      matricule: '2026-001',
+                      fullName: 'Mamadou Diallo',
+                      department: 'Direction Informatique',
+                      jobTitle: 'Développeur',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/doctor/patients/{id}/medical-record': {
+      get: {
+        tags: ['Medecin - Dossiers & Recherche'],
+        summary: 'Dossier medical complet du patient pour le medecin',
+        description: 'Retourne l\'integralite du dossier medical : constantes, antecedents, allergies classees et historique des consultations.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Identifiant UUID du patient', schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          200: {
+            description: 'Dossier medical recupere avec succes.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  data: {
+                    id: 'uuid',
+                    registrationNumber: '2004',
+                    bloodGroup: 'O+',
+                    medicalHistory: 'Asthme modere dans l\'enfance',
+                    allergies: [],
+                    consultations: [],
+                    vitalSignsHistory: [],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -1040,6 +1338,145 @@ export const swaggerDocument = {
               page: { type: 'integer', example: 1 },
               limit: { type: 'integer', example: 20 },
               total: { type: 'integer', example: 1 },
+              totalPages: { type: 'integer', example: 1 },
+            },
+          },
+        },
+      },
+      ConsultationStatsResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          data: {
+            type: 'object',
+            properties: {
+              consultationsThisMonth: { type: 'integer', example: 2 },
+              recentEmergencies: { type: 'integer', example: 1 },
+              waitingOrInProgressToday: { type: 'integer', example: 0 },
+            },
+          },
+        },
+      },
+      CreateConsultationInput: {
+        type: 'object',
+        required: ['patientId', 'reason'],
+        properties: {
+          patientId: { type: 'string', format: 'uuid', description: 'Identifiant unique du patient' },
+          type: { type: 'string', enum: ['GENERAL', 'INSTANT', 'PERIODIC'], default: 'GENERAL' },
+          reason: { type: 'string', description: 'Motif de consultation ou plaintes du patient', example: 'Maux de tête persistants' },
+          symptoms: { type: 'string', description: 'Description detaillee des symptomes', example: 'Céphalée frontale et vertiges' },
+          physicalExamination: { type: 'string', description: 'Constatations cliniques du medecin', example: 'Auscultation normale' },
+          diagnosis: { type: 'string', description: 'Diagnostic rapide (optionnel au demarrage)', example: 'Céphalée de tension' },
+          advice: { type: 'string', description: 'Conseils therapeutiques ou notes internes', example: 'Repos au calme' },
+          vitals: {
+            type: 'object',
+            properties: {
+              bloodPressure: { type: 'string', description: 'Tension (ex: "120/80")', example: '120/80' },
+              temperatureC: { type: 'number', description: 'Temperature en degres Celsius', example: 37.2 },
+              heightCm: { type: 'number', description: 'Taille en cm', example: 175 },
+              weightKg: { type: 'number', description: 'Poids en kg', example: 70 },
+              heartRate: { type: 'integer', description: 'Frequence cardiaque en bpm', example: 72 },
+              oxygenSaturation: { type: 'number', description: 'Saturation O2 en %', example: 98 },
+            },
+          },
+        },
+      },
+      UpdateConsultationInput: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', enum: ['WAITING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'], example: 'COMPLETED' },
+          type: { type: 'string', enum: ['GENERAL', 'INSTANT', 'PERIODIC'] },
+          reason: { type: 'string' },
+          symptoms: { type: 'string' },
+          physicalExamination: { type: 'string' },
+          diagnosis: { type: 'string', example: 'Céphalée de tension confirmée' },
+          advice: { type: 'string', example: 'Repos 48h et ordonnance transmise' },
+        },
+      },
+      AddPrescriptionInput: {
+        type: 'object',
+        required: ['medicationName', 'dosage', 'duration'],
+        properties: {
+          medicationName: { type: 'string', example: 'Paracétamol 1000mg' },
+          dosage: { type: 'string', example: '1 comprimé' },
+          frequency: { type: 'string', example: '3 fois par jour' },
+          duration: { type: 'string', example: '5 jours' },
+          instructions: { type: 'string', example: 'Au cours des repas' },
+        },
+      },
+      ConsultationDetailResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          data: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              consultationDate: { type: 'string', format: 'date-time' },
+              type: { type: 'string', example: 'GENERAL' },
+              status: { type: 'string', example: 'IN_PROGRESS' },
+              reason: { type: 'string' },
+              symptoms: { type: 'string' },
+              diagnosis: { type: 'string', nullable: true },
+              advice: { type: 'string', nullable: true },
+              patient: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  registrationNumber: { type: 'string', example: '2004' },
+                  gender: { type: 'string', example: 'M' },
+                  department: { type: 'string', example: 'DSI' },
+                  user: { type: 'object' },
+                  allergies: { type: 'array', items: { type: 'object' } },
+                },
+              },
+              vitalSigns: { type: 'array', items: { type: 'object' } },
+              prescriptions: { type: 'array', items: { type: 'object' } },
+              latestVitalsSummary: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  bloodPressure: { type: 'string', example: '120/80' },
+                  temperatureC: { type: 'number', example: 37.2 },
+                  heightCm: { type: 'number', example: 175 },
+                  weightKg: { type: 'number', example: 70 },
+                  bmi: { type: 'number', example: 22.9 },
+                  bmiLabel: { type: 'string', example: 'Normal' },
+                  isAbnormal: { type: 'boolean', example: false },
+                },
+              },
+            },
+          },
+        },
+      },
+      ConsultationListResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', format: 'uuid' },
+                consultationDate: { type: 'string', format: 'date-time' },
+                type: { type: 'string', example: 'GENERAL' },
+                status: { type: 'string', example: 'COMPLETED' },
+                reason: { type: 'string' },
+                diagnosis: { type: 'string', nullable: true },
+                patient: { type: 'object' },
+                doctor: { type: 'object' },
+                vitalSigns: { type: 'object', nullable: true },
+                prescriptionsCount: { type: 'integer', example: 1 },
+              },
+            },
+          },
+          pagination: {
+            type: 'object',
+            properties: {
+              page: { type: 'integer', example: 1 },
+              limit: { type: 'integer', example: 20 },
+              total: { type: 'integer', example: 2 },
               totalPages: { type: 'integer', example: 1 },
             },
           },
