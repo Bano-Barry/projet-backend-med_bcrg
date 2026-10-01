@@ -1,13 +1,13 @@
 /**
  * @file patients.schemas.ts
- * @description Schemas de validation Zod pour la gestion des dossiers patients et des allergies.
+ * @description Schemas de validation Zod pour la gestion des employes et des allergies.
  */
 
 import { z } from 'zod';
 import { AllergySeverity, AllergyType } from '@prisma/client';
 
 /**
- * Schema de creation ou d'enrolement d'un collaborateur patient.
+ * Schema de creation ou d'enrolement d'un collaborateur employe.
  */
 export const createPatientSchema = z.object({
   body: z.object({
@@ -41,7 +41,7 @@ export const createPatientSchema = z.object({
       .optional()
       .or(z.literal('')),
 
-    // Informations du dossier patient
+    // Informations professionnelles et fiche employe
     gender: z
       .enum(['M', 'F'], {
         errorMap: () => ({ message: 'Le genre doit etre M (Masculin) ou F (Feminin)' }),
@@ -66,11 +66,11 @@ export const createPatientSchema = z.object({
 });
 
 /**
- * Schema de mise a jour des informations administratives et medicales du dossier.
+ * Schema de mise a jour des informations administratives et de la fiche de l'employe.
  */
 export const updatePatientSchema = z.object({
   params: z.object({
-    id: z.string().uuid('Format d\'identifiant patient invalide (UUID requis)'),
+    id: z.string().uuid('Format d\'identifiant employe invalide (UUID requis)'),
   }),
   body: z.object({
     phone: z
@@ -93,16 +93,16 @@ export const updatePatientSchema = z.object({
 });
 
 /**
- * Schema de consultation d'un patient par son identifiant.
+ * Schema de consultation d'un employe par son identifiant.
  */
 export const getPatientByIdSchema = z.object({
   params: z.object({
-    id: z.string().uuid('Format d\'identifiant patient invalide (UUID requis)'),
+    id: z.string().uuid('Format d\'identifiant employe invalide (UUID requis)'),
   }),
 });
 
 /**
- * Schema de recherche et de pagination pour la liste des patients.
+ * Schema de recherche et de pagination pour la liste des employes.
  */
 export const listPatientsQuerySchema = z.object({
   query: z.object({
@@ -114,11 +114,11 @@ export const listPatientsQuerySchema = z.object({
 });
 
 /**
- * Schema d'ajout d'une allergie au dossier d'un patient.
+ * Schema d'ajout d'une allergie a la fiche de l'employe.
  */
 export const addPatientAllergySchema = z.object({
   params: z.object({
-    id: z.string().uuid('Format d\'identifiant patient invalide (UUID requis)'),
+    id: z.string().uuid('Format d\'identifiant employe invalide (UUID requis)'),
   }),
   body: z.object({
     allergyType: z.nativeEnum(AllergyType, {
@@ -142,11 +142,11 @@ export const addPatientAllergySchema = z.object({
 });
 
 /**
- * Schema de suppression d'une allergie.
+ * Schema de suppression d'une allergie de la fiche employe.
  */
 export const deletePatientAllergySchema = z.object({
   params: z.object({
-    id: z.string().uuid('Identifiant patient invalide'),
+    id: z.string().uuid('Identifiant employe invalide'),
     allergyId: z.string().uuid('Identifiant d\'allergie invalide'),
   }),
 });

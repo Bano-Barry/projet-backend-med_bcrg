@@ -25,12 +25,16 @@ export const swaggerDocument = {
   },
   servers: [
     {
-      url: '/',
-      description: 'Serveur courant (auto-detecte en local ou en production)',
+      url: 'http://localhost:5000',
+      description: 'Serveur de developpement local (Localhost)',
     },
     {
-      url: 'http://localhost:5000',
-      description: 'Environnement de developpement local',
+      url: 'https://backend-med-bcrg.onrender.com',
+      description: 'Serveur de production / recette en ligne (Render)',
+    },
+    {
+      url: '/',
+      description: 'Serveur courant (auto-detecte par le navigateur)',
     },
   ],
   tags: [
@@ -39,8 +43,8 @@ export const swaggerDocument = {
       description: 'Gestion des sessions, connexion par matricule et mot de passe initial.',
     },
     {
-      name: 'Patients',
-      description: 'Gestion des dossiers medicaux collaborateurs, fiches de suivi et profil d\'allergies.',
+      name: 'Employes',
+      description: 'Gestion des employes (enrolement, fiches d\'identification, coordonnees et profil d\'allergies).',
     },
     {
       name: 'Supervision',
@@ -327,18 +331,18 @@ export const swaggerDocument = {
         },
       },
     },
-    '/api/patients': {
+    '/api/employees': {
       post: {
-        tags: ['Patients'],
-        summary: 'Enrolement d\'un collaborateur (creation de dossier medical)',
+        tags: ['Employes'],
+        summary: 'Enrolement d\'un nouvel employe',
         description:
-          'Cree le dossier medical d\'un employe BCRG et genere son compte utilisateur s\'il n\'existe pas encore. Reserve aux soignants (DOCTOR) et aux administrateurs RH (HR).',
+          'Enrole un collaborateur comme employe et initialise sa fiche. Reserve exclusivement aux administrateurs RH (HR).',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/CreatePatientInput' },
+              schema: { $ref: '#/components/schemas/CreateEmployeeInput' },
               example: {
                 matricule: '2004',
                 firstName: 'Mamadou BANO',
@@ -356,10 +360,10 @@ export const swaggerDocument = {
         },
         responses: {
           201: {
-            description: 'Patient enrole avec succes.',
+            description: 'Employe enrole avec succes.',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/PatientDetailResponse' },
+                schema: { $ref: '#/components/schemas/EmployeeDetailResponse' },
               },
             },
           },
@@ -380,7 +384,7 @@ export const swaggerDocument = {
             },
           },
           403: {
-            description: 'Droits insuffisants ou mot de passe initial non modifie.',
+            description: 'Droits insuffisants (reserve aux administrateurs RH) ou mot de passe initial non modifie.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -398,10 +402,10 @@ export const swaggerDocument = {
         },
       },
       get: {
-        tags: ['Patients'],
-        summary: 'Recherche et liste paginee des dossiers collaborateurs',
+        tags: ['Employes'],
+        summary: 'Liste paginee des employes',
         description:
-          'Permet aux professionnels de sante de filtrer et rechercher les patients par matricule, nom, prenom ou direction d\'affectation.',
+          'Permet aux administrateurs RH de rechercher et lister les employes par matricule, nom, prenom ou direction d\'affectation.',
         security: [{ bearerAuth: [] }],
         parameters: [
           {
@@ -431,10 +435,10 @@ export const swaggerDocument = {
         ],
         responses: {
           200: {
-            description: 'Liste des patients recuperee avec succes.',
+            description: 'Liste des employes recuperee avec succes.',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/PatientListResponse' },
+                schema: { $ref: '#/components/schemas/EmployeeListResponse' },
               },
             },
           },
@@ -447,7 +451,7 @@ export const swaggerDocument = {
             },
           },
           403: {
-            description: 'Droits insuffisants : acces reserve aux soignants et aux gestionnaires RH.',
+            description: 'Droits insuffisants : acces reserve exclusivement aux administrateurs RH.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -457,19 +461,19 @@ export const swaggerDocument = {
         },
       },
     },
-    '/api/patients/me': {
+    '/api/employees/me': {
       get: {
-        tags: ['Patients'],
-        summary: 'Fiche medicale de l\'employe connecte',
+        tags: ['Employes'],
+        summary: 'Fiche de l\'employe connecte',
         description:
-          'Permet au collaborateur authentifie de consulter sa propre fiche patient et ses allergies en toute confidentialite.',
+          'Permet au collaborateur authentifie de consulter sa propre fiche employe et ses allergies en toute confidentialite.',
         security: [{ bearerAuth: [] }],
         responses: {
           200: {
-            description: 'Fiche du collaborateur connecte recuperee avec succes.',
+            description: 'Fiche de l\'employe connecte recuperee avec succes.',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/PatientDetailResponse' },
+                schema: { $ref: '#/components/schemas/EmployeeDetailResponse' },
               },
             },
           },
@@ -482,7 +486,7 @@ export const swaggerDocument = {
             },
           },
           404: {
-            description: 'Aucun dossier medical associe a ce compte.',
+            description: 'Aucune fiche employe associee a ce compte.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -492,28 +496,28 @@ export const swaggerDocument = {
         },
       },
     },
-    '/api/patients/{id}': {
+    '/api/employees/{id}': {
       get: {
-        tags: ['Patients'],
-        summary: 'Consultation detaillee d\'un dossier patient par identifiant',
+        tags: ['Employes'],
+        summary: 'Consultation d\'un employe par identifiant',
         description:
-          'Accessible aux soignants (DOCTOR), administrateurs RH (HR) ou a l\'employe concerne par son propre dossier (protection anti-BOLA).',
+          'Accessible aux administrateurs RH (HR), soignants (DOCTOR) ou a l\'employe concerne par sa propre fiche (protection anti-BOLA).',
         security: [{ bearerAuth: [] }],
         parameters: [
           {
             name: 'id',
             in: 'path',
             required: true,
-            description: 'Identifiant unique du dossier patient (UUID)',
+            description: 'Identifiant unique de l\'employe (UUID)',
             schema: { type: 'string', format: 'uuid' },
           },
         ],
         responses: {
           200: {
-            description: 'Dossier patient trouve.',
+            description: 'Fiche employe trouvee.',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/PatientDetailResponse' },
+                schema: { $ref: '#/components/schemas/EmployeeDetailResponse' },
               },
             },
           },
@@ -534,7 +538,7 @@ export const swaggerDocument = {
             },
           },
           404: {
-            description: 'Dossier patient introuvable.',
+            description: 'Employe introuvable.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -544,17 +548,17 @@ export const swaggerDocument = {
         },
       },
       put: {
-        tags: ['Patients'],
-        summary: 'Mise a jour des informations d\'un dossier patient',
+        tags: ['Employes'],
+        summary: 'Mise a jour des informations d\'un employe',
         description:
-          'Permet au personnel soignant de modifier la direction, le poste, le numero de telephone, le groupe sanguin ou les antecedents medicaux.',
+          'Permet aux administrateurs RH de modifier la direction, le poste, le numero de telephone, le groupe sanguin ou les coordonnees.',
         security: [{ bearerAuth: [] }],
         parameters: [
           {
             name: 'id',
             in: 'path',
             required: true,
-            description: 'Identifiant unique du dossier patient (UUID)',
+            description: 'Identifiant unique de l\'employe (UUID)',
             schema: { type: 'string', format: 'uuid' },
           },
         ],
@@ -562,7 +566,7 @@ export const swaggerDocument = {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/UpdatePatientInput' },
+              schema: { $ref: '#/components/schemas/UpdateEmployeeInput' },
               example: {
                 phone: '+224627000000',
                 department: 'Direction des Systèmes d\'Information',
@@ -575,10 +579,10 @@ export const swaggerDocument = {
         },
         responses: {
           200: {
-            description: 'Dossier patient mis a jour avec succes.',
+            description: 'Informations de l\'employe mises a jour avec succes.',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/PatientDetailResponse' },
+                schema: { $ref: '#/components/schemas/EmployeeDetailResponse' },
               },
             },
           },
@@ -599,7 +603,7 @@ export const swaggerDocument = {
             },
           },
           403: {
-            description: 'Droits insuffisants.',
+            description: 'Droits insuffisants : acces reserve exclusivement aux administrateurs RH.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -607,7 +611,7 @@ export const swaggerDocument = {
             },
           },
           404: {
-            description: 'Dossier patient introuvable.',
+            description: 'Employe introuvable.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -615,7 +619,7 @@ export const swaggerDocument = {
             },
           },
           409: {
-            description: 'Conflit : ce numero de telephone est deja utilise par un autre patient ou compte.',
+            description: 'Conflit : ce numero de telephone est deja utilise par un autre employe ou compte.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -625,10 +629,10 @@ export const swaggerDocument = {
         },
       },
     },
-    '/api/patients/{id}/allergies': {
+    '/api/employees/{id}/allergies': {
       post: {
-        tags: ['Patients'],
-        summary: 'Ajout d\'une allergie au dossier patient',
+        tags: ['Employes'],
+        summary: 'Ajout d\'une allergie a l\'employe',
         description:
           'Enregistre une allergie classee (medicamenteuse, alimentaire, professionnelle) avec niveau de severite (MILD, MODERATE, SEVERE). Reserve au personnel soignant.',
         security: [{ bearerAuth: [] }],
@@ -637,7 +641,7 @@ export const swaggerDocument = {
             name: 'id',
             in: 'path',
             required: true,
-            description: 'Identifiant unique du dossier patient (UUID)',
+            description: 'Identifiant unique de l\'employe (UUID)',
             schema: { type: 'string', format: 'uuid' },
           },
         ],
@@ -645,7 +649,7 @@ export const swaggerDocument = {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/AddPatientAllergyInput' },
+              schema: { $ref: '#/components/schemas/AddEmployeeAllergyInput' },
               example: {
                 allergyType: 'DRUG',
                 substance: 'Penicilline',
@@ -657,7 +661,7 @@ export const swaggerDocument = {
         },
         responses: {
           201: {
-            description: 'Allergie enregistree.',
+            description: 'Allergie enregistree avec succes.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/AllergyDetailResponse' },
@@ -689,7 +693,7 @@ export const swaggerDocument = {
             },
           },
           404: {
-            description: 'Dossier patient introuvable.',
+            description: 'Employe introuvable.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -699,18 +703,18 @@ export const swaggerDocument = {
         },
       },
     },
-    '/api/patients/{id}/allergies/{allergyId}': {
+    '/api/employees/{id}/allergies/{allergyId}': {
       delete: {
-        tags: ['Patients'],
-        summary: 'Suppression d\'une allergie du dossier',
-        description: 'Retire une allergie du dossier patient. Reserve au personnel soignant.',
+        tags: ['Employes'],
+        summary: 'Suppression d\'une allergie de l\'employe',
+        description: 'Retire une allergie de la fiche employe. Reserve au personnel soignant.',
         security: [{ bearerAuth: [] }],
         parameters: [
           {
             name: 'id',
             in: 'path',
             required: true,
-            description: 'Identifiant du dossier patient (UUID)',
+            description: 'Identifiant de l\'employe (UUID)',
             schema: { type: 'string', format: 'uuid' },
           },
           {
@@ -728,7 +732,7 @@ export const swaggerDocument = {
               'application/json': {
                 example: {
                   success: true,
-                  message: 'Allergie retiree du dossier avec succes.',
+                  message: 'Allergie retiree de la fiche employe avec succes.',
                 },
               },
             },
@@ -894,7 +898,7 @@ export const swaggerDocument = {
           },
         },
       },
-      CreatePatientInput: {
+      CreateEmployeeInput: {
         type: 'object',
         required: ['matricule', 'firstName', 'lastName', 'gender', 'department', 'jobTitle'],
         properties: {
@@ -910,7 +914,7 @@ export const swaggerDocument = {
           medicalHistory: { type: 'string', example: 'Asthme modere dans l\'enfance, aucun antecedent chirurgical.' },
         },
       },
-      UpdatePatientInput: {
+      UpdateEmployeeInput: {
         type: 'object',
         properties: {
           phone: { type: 'string', description: 'Nouveau numero de telephone unique', example: '+224627000000' },
@@ -920,7 +924,7 @@ export const swaggerDocument = {
           medicalHistory: { type: 'string', example: 'Asthme modere dans l\'enfance, aucun antecedent chirurgical.' },
         },
       },
-      AddPatientAllergyInput: {
+      AddEmployeeAllergyInput: {
         type: 'object',
         required: ['allergyType', 'substance'],
         properties: {
@@ -943,12 +947,12 @@ export const swaggerDocument = {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: true },
-          message: { type: 'string', example: 'Allergie enregistree au dossier medical.' },
+          message: { type: 'string', example: 'Allergie enregistree sur la fiche employe.' },
           data: {
             type: 'object',
             properties: {
               id: { type: 'string', format: 'uuid' },
-              patientId: { type: 'string', format: 'uuid' },
+              patientId: { type: 'string', format: 'uuid', description: 'Identifiant unique de l\'employe' },
               allergyType: { type: 'string', example: 'DRUG' },
               substance: { type: 'string', example: 'Penicilline' },
               reactionDetails: { type: 'string', example: 'Urticaire' },
@@ -958,11 +962,11 @@ export const swaggerDocument = {
           },
         },
       },
-      PatientDetailResponse: {
+      EmployeeDetailResponse: {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: true },
-          message: { type: 'string', example: 'Collaborateur enrôlé avec succès.' },
+          message: { type: 'string', example: 'Employe enrole avec succes.' },
           data: {
             type: 'object',
             properties: {
@@ -1005,7 +1009,7 @@ export const swaggerDocument = {
           },
         },
       },
-      PatientListResponse: {
+      EmployeeListResponse: {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: true },

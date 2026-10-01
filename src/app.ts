@@ -67,7 +67,7 @@ export const createApp = (): Application => {
       endpoints: {
         // health: '/api/health',
         auth: '/api/auth',
-        patients: '/api/patients',
+        employees: '/api/employees',
         docs: '/api/docs',
       },
     });
@@ -85,7 +85,7 @@ export const createApp = (): Application => {
 
   // Enregistrement des modules de l'API REST
   app.use('/api/auth', authRoutes);
-  app.use('/api/patients', patientsRoutes);
+  app.use('/api/employees', patientsRoutes);
 
   // Interception des routes non referencees (404)
   app.use((req: Request, _res: Response, next: NextFunction) => {

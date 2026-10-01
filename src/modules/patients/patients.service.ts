@@ -1,6 +1,6 @@
 /**
  * @file patients.service.ts
- * @description Logique metier du module de gestion des dossiers collaborateurs et des allergies.
+ * @description Logique metier du module de gestion des employes et des allergies.
  */
 
 import { UserRole, AllergyType, AllergySeverity } from '@prisma/client';
@@ -43,25 +43,25 @@ export interface AddAllergyInput {
 
 export class PatientsService {
   /**
-   * Enrole un nouveau collaborateur patient au sein du systeme medical de la BCRG.
+   * Enrole un nouveau collaborateur employe au sein de la BCRG.
    * Cree le compte utilisateur associe si necessaire au sein d'une transaction atomique.
    *
-   * @param data Donnees d'enrolement du collaborateur et du dossier
-   * @returns Le dossier patient nouvellement cree avec les informations du compte
+   * @param data Donnees d'enrolement du collaborateur et de sa fiche
+   * @returns La fiche employe nouvellement creee avec les informations du compte
    */
   async createPatient(data: CreatePatientInput) {
     const matriculeTrimmed = data.matricule.trim();
     const cleanEmail = data.email ? data.email.trim() : null;
     const cleanPhone = data.phone ? data.phone.trim() : null;
 
-    // 1. Verification de l'existence prealable d'un dossier pour ce matricule
+    // 1. Verification de l'existence prealable d'une fiche pour ce matricule
     const existingPatient = await prisma.patient.findUnique({
       where: { registrationNumber: matriculeTrimmed },
     });
 
     if (existingPatient) {
       throw new ConflictError(
-        `Un dossier medical existe deja pour le matricule BCRG ${matriculeTrimmed}`
+        `Un employé existe déjà pour le matricule ${matriculeTrimmed}`
       );
     }
 
@@ -73,7 +73,7 @@ export class PatientsService {
 
       if (existingUserWithEmail && existingUserWithEmail.matricule !== matriculeTrimmed) {
         throw new ConflictError(
-          `L'adresse email (${cleanEmail}) est deja associee a un autre collaborateur.`
+          `L'adresse email (${cleanEmail}) est déjà associée à un autre employé.`
         );
       }
     }
@@ -86,7 +86,7 @@ export class PatientsService {
 
       if (existingUserWithPhone && existingUserWithPhone.matricule !== matriculeTrimmed) {
         throw new ConflictError(
-          `Le numero de telephone (${cleanPhone}) est deja associe a un autre compte utilisateur.`
+          `Le numéro de téléphone (${cleanPhone}) est déjà associé à un autre employé.`
         );
       }
 
@@ -99,89 +99,95 @@ export class PatientsService {
         existingPatientWithPhone.registrationNumber !== matriculeTrimmed
       ) {
         throw new ConflictError(
-          `Le numero de telephone (${cleanPhone}) est deja associe a un autre dossier patient.`
+          `Le numéro de téléphone (${cleanPhone}) est déjà associé à un autre employé.`
         );
       }
     }
 
-    // 4. Verification ou creation atomique du compte utilisateur et du dossier patient
-    return prisma.$transaction(async (tx) => {
-      let user = await tx.user.findUnique({
-        where: { matricule: matriculeTrimmed },
-      });
+    // 4. Preparation du mot de passe temporaire par defaut en dehors de la transaction
+    const defaultPasswordHash = await hashPassword('ChangeMe@2026!');
 
-      if (!user) {
-        // Mot de passe temporaire attribue par defaut au nouveau collaborateur
-        const defaultPasswordHash = await hashPassword('ChangeMe@2026!');
+    // 5. Verification ou creation atomique du compte utilisateur et de la fiche employe
+    return prisma.$transaction(
+      async (tx) => {
+        let user = await tx.user.findUnique({
+          where: { matricule: matriculeTrimmed },
+        });
 
-        user = await tx.user.create({
+        if (!user) {
+          user = await tx.user.create({
+            data: {
+              matricule: matriculeTrimmed,
+              email: cleanEmail,
+              passwordHash: defaultPasswordHash,
+              firstName: data.firstName.trim(),
+              lastName: data.lastName.trim(),
+              role: UserRole.EMPLOYEE,
+              phone: cleanPhone,
+              isFirstLogin: true,
+              isActive: true,
+            },
+          });
+        } else {
+          // Synchronisation du telephone ou de l'email sur le compte existant si non renseignes
+          const userUpdates: { phone?: string; email?: string } = {};
+          if (cleanPhone && !user.phone) {
+            userUpdates.phone = cleanPhone;
+          }
+          if (cleanEmail && !user.email) {
+            userUpdates.email = cleanEmail;
+          }
+
+          if (Object.keys(userUpdates).length > 0) {
+            user = await tx.user.update({
+              where: { id: user.id },
+              data: userUpdates,
+            });
+          }
+        }
+
+        const patient = await tx.patient.create({
           data: {
-            matricule: matriculeTrimmed,
-            email: cleanEmail,
-            passwordHash: defaultPasswordHash,
-            firstName: data.firstName.trim(),
-            lastName: data.lastName.trim(),
-            role: UserRole.EMPLOYEE,
+            userId: user.id,
+            registrationNumber: matriculeTrimmed,
+            gender: data.gender,
             phone: cleanPhone,
-            isFirstLogin: true,
-            isActive: true,
+            department: data.department.trim(),
+            jobTitle: data.jobTitle.trim(),
+            bloodGroup: data.bloodGroup || null,
+            medicalHistory: data.medicalHistory ? data.medicalHistory.trim() : null,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                matricule: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+                role: true,
+                isFirstLogin: true,
+              },
+            },
+            allergies: true,
           },
         });
-      } else {
-        // Synchronisation du telephone ou de l'email sur le compte existant si non renseignes
-        const userUpdates: { phone?: string; email?: string } = {};
-        if (cleanPhone && !user.phone) {
-          userUpdates.phone = cleanPhone;
-        }
-        if (cleanEmail && !user.email) {
-          userUpdates.email = cleanEmail;
-        }
 
-        if (Object.keys(userUpdates).length > 0) {
-          user = await tx.user.update({
-            where: { id: user.id },
-            data: userUpdates,
-          });
-        }
+        return patient;
+      },
+      {
+        maxWait: 10000,
+        timeout: 25000,
       }
-
-      const patient = await tx.patient.create({
-        data: {
-          userId: user.id,
-          registrationNumber: matriculeTrimmed,
-          gender: data.gender,
-          phone: cleanPhone,
-          department: data.department.trim(),
-          jobTitle: data.jobTitle.trim(),
-          bloodGroup: data.bloodGroup || null,
-          medicalHistory: data.medicalHistory ? data.medicalHistory.trim() : null,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              matricule: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              phone: true,
-              role: true,
-              isFirstLogin: true,
-            },
-          },
-          allergies: true,
-        },
-      });
-
-      return patient;
-    });
+    );
   }
 
   /**
-   * Recherche et liste les patients avec pagination et filtres multi-criteres.
+   * Recherche et liste les employes avec pagination et filtres multi-criteres.
    *
    * @param params Criteres de recherche, filtre par service et parametres de pagination
-   * @returns Liste paginee des dossiers patients
+   * @returns Liste paginee des employes
    */
   async listPatients(params: {
     search?: string;
@@ -267,12 +273,12 @@ export class PatientsService {
   }
 
   /**
-   * Recupere le dossier patient complet par son identifiant.
-   * Controle les permissions d'acces (secret medical et protection BOLA/IDOR).
+   * Recupere la fiche employe complete par son identifiant.
+   * Controle les permissions d'acces (protection BOLA/IDOR).
    *
-   * @param patientId Identifiant unique du dossier patient (UUID)
+   * @param patientId Identifiant unique de l'employe (UUID)
    * @param currentUser Utilisateur authentifie effectuant la requete
-   * @returns Fiche patient detaillee avec antecedents et allergies
+   * @returns Fiche employe detaillee avec coordonnees et allergies
    */
   async getPatientById(patientId: string, currentUser: AuthenticatedUser) {
     const patient = await prisma.patient.findUnique({
@@ -297,13 +303,13 @@ export class PatientsService {
     });
 
     if (!patient) {
-      throw new NotFoundError('Dossier patient introuvable');
+      throw new NotFoundError('Employé introuvable');
     }
 
     // Protection BOLA : si l'utilisateur est un simple employe, il ne peut voir que sa propre fiche
     if (currentUser.role === UserRole.EMPLOYEE && patient.userId !== currentUser.id) {
       throw new ForbiddenError(
-        'Acces refuse : vous n\'etes pas autorisé a consulter le dossier d\'un tiers'
+        'Acces refuse : vous n\'etes pas autorise a consulter les informations d\'un tiers'
       );
     }
 
@@ -311,10 +317,10 @@ export class PatientsService {
   }
 
   /**
-   * Recupere la fiche patient rattachee au compte de l'utilisateur connecte.
+   * Recupere la fiche employe rattachee au compte de l'utilisateur connecte.
    *
    * @param userId Identifiant du compte utilisateur
-   * @returns Dossier patient de l'utilisateur
+   * @returns Fiche de l'employe connecte
    */
   async getMyPatientProfile(userId: string) {
     const patient = await prisma.patient.findUnique({
@@ -336,7 +342,7 @@ export class PatientsService {
 
     if (!patient) {
       throw new NotFoundError(
-        'Aucun dossier medical n\'est encore associé a votre compte. Veuillez contacter l\'infirmerie.'
+        'Aucun employé n\'est encore associé à votre compte. Veuillez contacter les ressources humaines.'
       );
     }
 
@@ -344,11 +350,11 @@ export class PatientsService {
   }
 
   /**
-   * Met a jour les informations administratives ou les antecedents du patient.
+   * Met a jour les informations administratives ou les coordonnees de l'employe.
    *
-   * @param patientId Identifiant unique du patient
+   * @param patientId Identifiant unique de l'employe
    * @param data Champs a mettre a jour
-   * @returns Dossier patient mis a jour
+   * @returns Fiche employe mise a jour
    */
   async updatePatient(patientId: string, data: UpdatePatientInput) {
     const existing = await prisma.patient.findUnique({
@@ -356,7 +362,7 @@ export class PatientsService {
     });
 
     if (!existing) {
-      throw new NotFoundError('Dossier patient introuvable');
+      throw new NotFoundError('Employé introuvable');
     }
 
     const cleanPhone =
@@ -370,7 +376,7 @@ export class PatientsService {
 
       if (conflictPatient && conflictPatient.id !== patientId) {
         throw new ConflictError(
-          `Le numero de telephone (${cleanPhone}) est deja associe a un autre patient.`
+          `Le numero de telephone (${cleanPhone}) est deja associe a un autre employe.`
         );
       }
 
@@ -418,13 +424,17 @@ export class PatientsService {
       });
 
       return updated;
+    },
+    {
+      maxWait: 10000,
+      timeout: 25000,
     });
   }
 
   /**
-   * Enregistre une nouvelle allergie au dossier medical du patient.
+   * Enregistre une nouvelle allergie sur la fiche de l'employe.
    *
-   * @param patientId Identifiant du patient
+   * @param patientId Identifiant de l'employe
    * @param data Details de l'allergie (type, substance, severite)
    * @returns L'allergie creee
    */
@@ -434,7 +444,7 @@ export class PatientsService {
     });
 
     if (!patient) {
-      throw new NotFoundError('Dossier patient introuvable');
+      throw new NotFoundError('Employé introuvable');
     }
 
     const allergy = await prisma.patientAllergy.create({
@@ -451,9 +461,9 @@ export class PatientsService {
   }
 
   /**
-   * Supprime une allergie du dossier patient.
+   * Supprime une allergie de la fiche employe.
    *
-   * @param patientId Identifiant du patient
+   * @param patientId Identifiant de l'employe
    * @param allergyId Identifiant de l'allergie a supprimer
    */
   async deleteAllergy(patientId: string, allergyId: string) {
@@ -465,14 +475,14 @@ export class PatientsService {
     });
 
     if (!allergy) {
-      throw new NotFoundError('Allergie introuvable pour ce patient');
+      throw new NotFoundError('Allergie introuvable pour cet employe');
     }
 
     await prisma.patientAllergy.delete({
       where: { id: allergyId },
     });
 
-    return { message: 'Allergie retiree du dossier avec succes.' };
+    return { message: 'Allergie retirée pour cet employé avec succès.' };
   }
 }
 

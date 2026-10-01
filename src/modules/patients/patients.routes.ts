@@ -1,6 +1,6 @@
 /**
  * @file patients.routes.ts
- * @description Declaration des routes de l'API pour le module Dossier Patient & Allergies.
+ * @description Declaration des routes de l'API pour le module Employes & Profils Medicaux.
  */
 
 import { Router } from 'express';
@@ -23,11 +23,11 @@ import {
 
 const router = Router();
 
-// Toutes les routes relatives aux patients requierent d'etre authentifie
+// Toutes les routes relatives aux employes requierent d'etre authentifie
 router.use(authenticate);
 
 /**
- * Route permettant a un collaborateur de consulter sa propre fiche patient.
+ * Route permettant a un collaborateur de consulter sa propre fiche employe.
  */
 router.get(
   '/me',
@@ -38,30 +38,30 @@ router.get(
 router.use(requirePasswordChanged);
 
 /**
- * Enrolement d'un collaborateur patient.
- * Reserve aux profils RH (administrateurs) et soignants.
+ * Enrolement d'un collaborateur employe.
+ * Reserve exclusivement aux administrateurs RH.
  */
 router.post(
   '/',
-  requireRoles(UserRole.HR, UserRole.DOCTOR),
+  requireRoles(UserRole.HR),
   validateRequest(createPatientSchema),
   patientsController.createPatient.bind(patientsController)
 );
 
 /**
- * Recherche et pagination des dossiers patients.
- * Reserve aux soignants et au profil RH.
+ * Recherche et pagination des employes.
+ * Reserve exclusivement aux administrateurs RH.
  */
 router.get(
   '/',
-  requireRoles(UserRole.HR, UserRole.DOCTOR),
+  requireRoles(UserRole.HR),
   validateRequest(listPatientsQuerySchema),
   patientsController.listPatients.bind(patientsController)
 );
 
 /**
- * Consultation detaillee d'un dossier patient par identifiant.
- * Accessible aux soignants, RH ou a l'employe concerne (protection BOLA/IDOR).
+ * Consultation detaillee d'une fiche employe par identifiant.
+ * Accessible aux administrateurs RH, soignants ou a l'employe concerne (protection BOLA/IDOR).
  */
 router.get(
   '/:id',
@@ -70,19 +70,19 @@ router.get(
 );
 
 /**
- * Mise a jour des donnees administratives ou des antecedents medicaux du patient.
- * Reserve aux soignants et au profil RH.
+ * Mise a jour des donnees de l'employe.
+ * Reserve exclusivement aux administrateurs RH.
  */
 router.put(
   '/:id',
-  requireRoles(UserRole.HR, UserRole.DOCTOR),
+  requireRoles(UserRole.HR),
   validateRequest(updatePatientSchema),
   patientsController.updatePatient.bind(patientsController)
 );
 
 /**
- * Ajout d'une allergie au dossier patient.
- * Reserve au personnel medical habilité (Medecin, Infirmier).
+ * Ajout d'une allergie a la fiche de l'employe.
+ * Reserve au personnel medical habilite (DOCTOR).
  */
 router.post(
   '/:id/allergies',
@@ -92,8 +92,8 @@ router.post(
 );
 
 /**
- * Retrait d'une allergie du dossier patient.
- * Reserve au personnel medical habilité.
+ * Retrait d'une allergie de la fiche de l'employe.
+ * Reserve au personnel medical habilite (DOCTOR).
  */
 router.delete(
   '/:id/allergies/:allergyId',

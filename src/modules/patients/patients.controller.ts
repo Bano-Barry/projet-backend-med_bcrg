@@ -1,6 +1,6 @@
 /**
  * @file patients.controller.ts
- * @description Controleur HTTP pour le module de gestion des dossiers patients et des allergies.
+ * @description Controleur HTTP pour le module de gestion des employes et des allergies.
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -8,7 +8,7 @@ import { patientsService } from './patients.service';
 
 export class PatientsController {
   /**
-   * Enrole un nouveau collaborateur patient (creation du dossier et du compte).
+   * Enrole un nouveau collaborateur employe (creation de la fiche et du compte).
    */
   async createPatient(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -16,7 +16,7 @@ export class PatientsController {
 
       res.status(201).json({
         success: true,
-        message: 'Collaborateur enrôlé avec succès.',
+        message: 'Employé ajouté avec succès.',
         data: patient,
       });
     } catch (error) {
@@ -25,7 +25,7 @@ export class PatientsController {
   }
 
   /**
-   * Liste les patients avec pagination et filtres de recherche.
+   * Liste les employes avec pagination et filtres de recherche.
    */
   async listPatients(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -49,7 +49,7 @@ export class PatientsController {
   }
 
   /**
-   * Recupere la fiche patient detaillee de l'utilisateur connecte.
+   * Recupere la fiche employe detaillee de l'utilisateur connecte.
    */
   async getMyPatientProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -66,7 +66,7 @@ export class PatientsController {
   }
 
   /**
-   * Recupere la fiche patient detaillee par son identifiant.
+   * Recupere la fiche employe detaillee par son identifiant.
    */
   async getPatientById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -83,7 +83,7 @@ export class PatientsController {
   }
 
   /**
-   * Met a jour les informations administratives ou antecedents d'un patient.
+   * Met a jour les informations administratives ou antecedents d'un employe.
    */
   async updatePatient(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -92,7 +92,7 @@ export class PatientsController {
 
       res.status(200).json({
         success: true,
-        message: 'Dossier patient mis à jour avec succès.',
+        message: 'Employé mise à jour avec succès.',
         data: updated,
       });
     } catch (error) {
@@ -101,7 +101,7 @@ export class PatientsController {
   }
 
   /**
-   * Ajoute une allergie au dossier d'un patient.
+   * Ajoute une allergie a la fiche d'un employe.
    */
   async addAllergy(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -110,7 +110,7 @@ export class PatientsController {
 
       res.status(201).json({
         success: true,
-        message: 'Allergie enregistrée au dossier medical.',
+        message: 'Allergie enregistrée pour employé.',
         data: allergy,
       });
     } catch (error) {
@@ -119,7 +119,7 @@ export class PatientsController {
   }
 
   /**
-   * Retire une allergie du dossier patient.
+   * Retire une allergie de la fiche employe.
    */
   async deleteAllergy(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
