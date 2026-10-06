@@ -21,8 +21,6 @@ export const vitalSignsInputSchema = z.object({
     .regex(BLOOD_PRESSURE_REGEX, 'Format de tension attendu : "120/80"')
     .optional()
     .or(z.literal('')),
-  bloodPressureSystolic: z.number().int().min(40).max(280).optional(),
-  bloodPressureDiastolic: z.number().int().min(20).max(180).optional(),
   temperatureC: z.number().min(30).max(45).optional(),
   heightCm: z.number().min(30).max(260).optional(),
   weightKg: z.number().min(1).max(350).optional(),
@@ -32,7 +30,6 @@ export const vitalSignsInputSchema = z.object({
     })
     .optional()
     .or(z.literal('')),
-  respiratoryRate: z.number().int().min(5).max(80).optional(),
 });
 
 /**
@@ -133,7 +130,7 @@ export const listConsultationsQuerySchema = z.object({
     status: z.nativeEnum(ConsultationStatus).optional(),
     date: z.string().trim().optional(),
     page: z.string().regex(/^[0-9]+$/).transform((v) => parseInt(v, 10)).default('1'),
-    limit: z.string().regex(/^[0-9]+$/).transform((v) => parseInt(v, 10)).default('20'),
+    limit: z.string().regex(/^[0-9]+$/).transform((v) => parseInt(v, 10)).default('10'),
   }),
 });
 

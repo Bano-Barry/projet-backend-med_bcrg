@@ -7,13 +7,10 @@ import { ConsultationStatus, ConsultationType } from '@prisma/client';
 
 export interface VitalSignsInput {
   bloodPressure?: string;
-  bloodPressureSystolic?: number;
-  bloodPressureDiastolic?: number;
   temperatureC?: number;
   heightCm?: number;
   weightKg?: number;
   bloodGroup?: string;
-  respiratoryRate?: number;
 }
 
 export interface CreateConsultationInput {

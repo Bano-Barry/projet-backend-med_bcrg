@@ -6,11 +6,7 @@
 import { ConsultationStatus, ConsultationType, Prisma } from '@prisma/client';
 import { prisma } from '../../../infrastructure/database/prisma';
 import { NotFoundError, BadRequestError } from '../../../core/errors';
-import {
-  calculateBmi,
-  parseBloodPressure,
-  isVitalSignAbnormal,
-} from '../../../core/utils/clinical';
+import { calculateBmi } from '../../../core/utils/clinical';
 import {
   VitalSignsInput,
   CreateConsultationInput,
@@ -307,16 +303,12 @@ export class DoctorConsultationsService {
       latestVitalsSummary: latestVitals
         ? {
           temperatureC: latestVitals.temperatureC ? Number(latestVitals.temperatureC) : null,
-          bloodPressure:
-            latestVitals.bloodPressureSystolic && latestVitals.bloodPressureDiastolic
-              ? `${latestVitals.bloodPressureSystolic}/${latestVitals.bloodPressureDiastolic}`
-              : null,
+          bloodPressure: latestVitals.bloodPressure ?? null,
           heightCm: latestVitals.heightCm ? Number(latestVitals.heightCm) : null,
           weightKg: latestVitals.weightKg ? Number(latestVitals.weightKg) : null,
           bmi: bmiInfo ? bmiInfo.bmi : (latestVitals.bmi ? Number(latestVitals.bmi) : null),
           bmiLabel: bmiInfo ? bmiInfo.label : null,
           bloodGroup: consultation.patient.bloodGroup,
-          isAbnormal: latestVitals.isAbnormal,
         }
         : null,
     };
@@ -335,20 +327,7 @@ export class DoctorConsultationsService {
     }
 
     // Traitement et preparation des constantes
-    let systolic: number | null = null;
-    let diastolic: number | null = null;
-
-    if (input.vitals) {
-      if (input.vitals.bloodPressure) {
-        const parsed = parseBloodPressure(input.vitals.bloodPressure);
-        systolic = parsed.systolic ?? null;
-        diastolic = parsed.diastolic ?? null;
-      } else {
-        systolic = input.vitals.bloodPressureSystolic ?? null;
-        diastolic = input.vitals.bloodPressureDiastolic ?? null;
-      }
-    }
-
+    const bloodPressure = input.vitals?.bloodPressure ? input.vitals.bloodPressure.trim() : null;
     const weight = input.vitals?.weightKg ?? null;
     const height = input.vitals?.heightCm ?? null;
     const temp = input.vitals?.temperatureC ?? null;
@@ -363,18 +342,8 @@ export class DoctorConsultationsService {
       weight !== null ||
       height !== null ||
       temp !== null ||
-      systolic !== null ||
-      diastolic !== null ||
-      input.vitals?.respiratoryRate !== undefined ||
+      bloodPressure !== null ||
       input.vitals?.bloodGroup !== undefined;
-
-    const isAbnormal = hasVitals
-      ? isVitalSignAbnormal({
-        temperatureC: temp,
-        bloodPressureSystolic: systolic,
-        bloodPressureDiastolic: diastolic,
-      })
-      : false;
 
     return prisma.$transaction(async (tx) => {
       // Si le groupe sanguin est renseigne dans les constantes, on met a jour le dossier patient
@@ -408,10 +377,7 @@ export class DoctorConsultationsService {
             heightCm: height !== null ? new Prisma.Decimal(height) : null,
             bmi: computedBmi !== null ? new Prisma.Decimal(computedBmi) : null,
             temperatureC: temp !== null ? new Prisma.Decimal(temp) : null,
-            bloodPressureSystolic: systolic,
-            bloodPressureDiastolic: diastolic,
-            respiratoryRate: input.vitals?.respiratoryRate ?? null,
-            isAbnormal,
+            bloodPressure,
           },
         });
       }
@@ -459,18 +425,7 @@ export class DoctorConsultationsService {
 
       // 1. Mise a jour des constantes si specifiees
       if (input.vitals) {
-        let systolic: number | null = null;
-        let diastolic: number | null = null;
-
-        if (input.vitals.bloodPressure) {
-          const parsed = parseBloodPressure(input.vitals.bloodPressure);
-          systolic = parsed.systolic ?? null;
-          diastolic = parsed.diastolic ?? null;
-        } else {
-          systolic = input.vitals.bloodPressureSystolic ?? null;
-          diastolic = input.vitals.bloodPressureDiastolic ?? null;
-        }
-
+        const bloodPressure = input.vitals.bloodPressure ? input.vitals.bloodPressure.trim() : null;
         const weight = input.vitals.weightKg ?? null;
         const height = input.vitals.heightCm ?? null;
         const temp = input.vitals.temperatureC ?? null;
@@ -481,12 +436,6 @@ export class DoctorConsultationsService {
           if (res) computedBmi = res.bmi;
         }
 
-        const isAbnormal = isVitalSignAbnormal({
-          temperatureC: temp,
-          bloodPressureSystolic: systolic,
-          bloodPressureDiastolic: diastolic,
-        });
-
         await tx.vitalSign.create({
           data: {
             consultationId: id,
@@ -495,10 +444,7 @@ export class DoctorConsultationsService {
             heightCm: height !== null ? new Prisma.Decimal(height) : null,
             bmi: computedBmi !== null ? new Prisma.Decimal(computedBmi) : null,
             temperatureC: temp !== null ? new Prisma.Decimal(temp) : null,
-            bloodPressureSystolic: systolic,
-            bloodPressureDiastolic: diastolic,
-            respiratoryRate: input.vitals.respiratoryRate ?? null,
-            isAbnormal,
+            bloodPressure,
           },
         });
       }

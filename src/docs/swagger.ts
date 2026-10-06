@@ -47,10 +47,6 @@ export const swaggerDocument = {
       description: 'Gestion des employes (enrolement, fiches d\'identification, coordonnees et profil d\'allergies).',
     },
     {
-      name: 'Supervision',
-      description: 'Endpoints techniques de disponibilite et d\'informations systeme.',
-    },
-    {
       name: 'Medecin - Consultations',
       description: 'Espace clinique dedie au medecin (demarrage de consultation, constantes vitales, ordonnances et KPIs).',
     },
@@ -60,55 +56,6 @@ export const swaggerDocument = {
     },
   ],
   paths: {
-    '/': {
-      get: {
-        tags: ['Supervision'],
-        summary: 'Metadonnees de l\'API',
-        description: 'Retourne les informations generales sur le service et les points d\'entree disponibles.',
-        responses: {
-          200: {
-            description: 'Informations du service recuperees avec succes.',
-            content: {
-              'application/json': {
-                example: {
-                  name: 'API Infirmerie BCRG',
-                  version: '1.0.0',
-                  status: 'UP',
-                  description: 'Systeme de gestion de l\'infirmerie de la Banque Centrale de la Republique de Guinee',
-                  endpoints: {
-                    health: '/api/health',
-                    auth: '/api/auth',
-                    docs: '/api/docs',
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    // '/api/health': {
-    //   get: {
-    //     tags: ['Supervision'],
-    //     summary: 'Verification de sante du serveur',
-    //     description: 'Controle si le service backend est actif et operationnel.',
-    //     responses: {
-    //       200: {
-    //         description: 'Serveur en ligne.',
-    //         content: {
-    //           'application/json': {
-    //             example: {
-    //               status: 'UP',
-    //               service: 'backend-med-bcrg',
-    //               timestamp: '2026-09-30T09:00:00.000Z',
-    //               environment: 'development',
-    //             },
-    //           },
-    //         },
-    //       },
-    //     },
-    //   },
-    // },
     '/api/auth/login': {
       post: {
         tags: ['Authentification'],
@@ -1472,7 +1419,6 @@ export const swaggerDocument = {
                   bmi: { type: 'number', example: 22.9 },
                   bmiLabel: { type: 'string', example: 'Normal' },
                   bloodGroup: { type: 'string', example: 'O+' },
-                  isAbnormal: { type: 'boolean', example: false },
                 },
               },
             },

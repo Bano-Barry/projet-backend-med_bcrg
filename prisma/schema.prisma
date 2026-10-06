@@ -161,20 +161,15 @@ model Consultation {
 // 5. CONSTANTES VITALES HISTORISEES (EF-3.1)
 // ==============================================================================
 model VitalSign {
-  id                     String   @id @default(uuid()) @db.Uuid
-  consultationId         String   @map("consultation_id") @db.Uuid
-  patientId              String   @map("patient_id") @db.Uuid
-  weightKg               Decimal? @map("weight_kg") @db.Decimal(5, 2)
-  heightCm               Decimal? @map("height_cm") @db.Decimal(5, 2)
-  bmi                    Decimal? @db.Decimal(4, 1)
-  temperatureC           Decimal? @map("temperature_c") @db.Decimal(4, 2)
-  bloodPressureSystolic  Int?     @map("blood_pressure_systolic")
-  bloodPressureDiastolic Int?     @map("blood_pressure_diastolic")
-  heartRate              Int?     @map("heart_rate")
-  respiratoryRate        Int?     @map("respiratory_rate")
-  oxygenSaturation       Decimal? @map("oxygen_saturation") @db.Decimal(4, 1)
-  isAbnormal             Boolean  @default(false) @map("is_abnormal")
-  measuredAt             DateTime @default(now()) @map("measured_at") @db.Timestamptz
+  id             String   @id @default(uuid()) @db.Uuid
+  consultationId String   @map("consultation_id") @db.Uuid
+  patientId      String   @map("patient_id") @db.Uuid
+  weightKg       Decimal? @map("weight_kg") @db.Decimal(5, 2)
+  heightCm       Decimal? @map("height_cm") @db.Decimal(5, 2)
+  bmi            Decimal? @db.Decimal(4, 1)
+  temperatureC   Decimal? @map("temperature_c") @db.Decimal(4, 2)
+  bloodPressure  String?  @map("blood_pressure") @db.VarChar(20)
+  measuredAt     DateTime @default(now()) @map("measured_at") @db.Timestamptz
 
   consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
   patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)

@@ -33,10 +33,6 @@
       "description": "Gestion des employes (enrolement, fiches d'identification, coordonnees et profil d'allergies)."
     },
     {
-      "name": "Supervision",
-      "description": "Endpoints techniques de disponibilite et d'informations systeme."
-    },
-    {
       "name": "Medecin - Consultations",
       "description": "Espace clinique dedie au medecin (demarrage de consultation, constantes vitales, ordonnances et KPIs)."
     },
@@ -46,35 +42,6 @@
     }
   ],
   "paths": {
-    "/": {
-      "get": {
-        "tags": [
-          "Supervision"
-        ],
-        "summary": "Metadonnees de l'API",
-        "description": "Retourne les informations generales sur le service et les points d'entree disponibles.",
-        "responses": {
-          "200": {
-            "description": "Informations du service recuperees avec succes.",
-            "content": {
-              "application/json": {
-                "example": {
-                  "name": "API Infirmerie BCRG",
-                  "version": "1.0.0",
-                  "status": "UP",
-                  "description": "Systeme de gestion de l'infirmerie de la Banque Centrale de la Republique de Guinee",
-                  "endpoints": {
-                    "health": "/api/health",
-                    "auth": "/api/auth",
-                    "docs": "/api/docs"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/auth/login": {
       "post": {
         "tags": [
@@ -2407,10 +2374,6 @@
                   "bloodGroup": {
                     "type": "string",
                     "example": "O+"
-                  },
-                  "isAbnormal": {
-                    "type": "boolean",
-                    "example": false
                   }
                 }
               }
