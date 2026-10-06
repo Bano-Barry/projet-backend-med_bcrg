@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "rimraf dist && tsc",
+    "postinstall": "prisma generate",
     "build:render": "prisma generate && npm run build && prisma db push",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
