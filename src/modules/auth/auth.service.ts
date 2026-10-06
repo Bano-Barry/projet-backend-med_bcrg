@@ -33,9 +33,7 @@ export class AuthService {
         patient: {
           select: {
             id: true,
-            registrationNumber: true,
-            department: true,
-            jobTitle: true,
+            bloodGroup: true,
           },
         },
       },
@@ -82,6 +80,9 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        phone: user.phone,
+        department: user.department,
+        jobTitle: user.jobTitle,
         role: user.role,
         isFirstLogin: user.isFirstLogin,
         patient: user.patient,
@@ -192,6 +193,8 @@ export class AuthService {
         lastName: true,
         role: true,
         phone: true,
+        department: true,
+        jobTitle: true,
         isFirstLogin: true,
         isActive: true,
         lastLoginAt: true,
@@ -199,11 +202,7 @@ export class AuthService {
         patient: {
           select: {
             id: true,
-            registrationNumber: true,
             gender: true,
-            phone: true,
-            department: true,
-            jobTitle: true,
             bloodGroup: true,
             medicalHistory: true,
           },

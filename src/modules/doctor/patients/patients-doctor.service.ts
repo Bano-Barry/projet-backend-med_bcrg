@@ -25,14 +25,14 @@ export class PatientsDoctorService {
       where: {
         OR: [
           { registrationNumber: { contains: q, mode: 'insensitive' } },
-          { department: { contains: q, mode: 'insensitive' } },
-          { jobTitle: { contains: q, mode: 'insensitive' } },
           {
             user: {
               OR: [
                 { firstName: { contains: q, mode: 'insensitive' } },
                 { lastName: { contains: q, mode: 'insensitive' } },
                 { matricule: { contains: q, mode: 'insensitive' } },
+                { department: { contains: q, mode: 'insensitive' } },
+                { jobTitle: { contains: q, mode: 'insensitive' } },
               ],
             },
           },
@@ -44,8 +44,6 @@ export class PatientsDoctorService {
         id: true,
         registrationNumber: true,
         gender: true,
-        department: true,
-        jobTitle: true,
         bloodGroup: true,
         user: {
           select: {
@@ -55,6 +53,8 @@ export class PatientsDoctorService {
             lastName: true,
             email: true,
             phone: true,
+            department: true,
+            jobTitle: true,
           },
         },
       },
@@ -68,8 +68,8 @@ export class PatientsDoctorService {
       firstName: p.user.firstName,
       lastName: p.user.lastName,
       gender: p.gender,
-      department: p.department,
-      jobTitle: p.jobTitle,
+      department: p.user.department,
+      jobTitle: p.user.jobTitle,
       phone: p.user.phone,
       bloodGroup: p.bloodGroup,
     }));
@@ -93,6 +93,8 @@ export class PatientsDoctorService {
             lastName: true,
             email: true,
             phone: true,
+            department: true,
+            jobTitle: true,
             isActive: true,
           },
         },
@@ -143,8 +145,8 @@ export class PatientsDoctorService {
       id: patient.id,
       registrationNumber: patient.registrationNumber,
       gender: patient.gender,
-      department: patient.department,
-      jobTitle: patient.jobTitle,
+      department: patient.user.department,
+      jobTitle: patient.user.jobTitle,
       bloodGroup: patient.bloodGroup,
       medicalHistory: patient.medicalHistory,
       createdAt: patient.createdAt,

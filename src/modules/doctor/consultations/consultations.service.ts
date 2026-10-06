@@ -11,48 +11,13 @@ import {
   parseBloodPressure,
   isVitalSignAbnormal,
 } from '../../../core/utils/clinical';
-
-export interface VitalSignsInput {
-  bloodPressure?: string;
-  bloodPressureSystolic?: number;
-  bloodPressureDiastolic?: number;
-  temperatureC?: number;
-  heightCm?: number;
-  weightKg?: number;
-  heartRate?: number;
-  respiratoryRate?: number;
-  oxygenSaturation?: number;
-}
-
-export interface CreateConsultationInput {
-  patientId: string;
-  type?: ConsultationType;
-  reason: string;
-  symptoms?: string;
-  physicalExamination?: string;
-  diagnosis?: string;
-  advice?: string;
-  vitals?: VitalSignsInput;
-}
-
-export interface UpdateConsultationInput {
-  status?: ConsultationStatus;
-  type?: ConsultationType;
-  reason?: string;
-  symptoms?: string;
-  physicalExamination?: string;
-  diagnosis?: string;
-  advice?: string;
-  vitals?: VitalSignsInput;
-}
-
-export interface AddPrescriptionInput {
-  medicationName: string;
-  dosage: string;
-  frequency?: string;
-  duration: string;
-  instructions?: string;
-}
+import {
+  VitalSignsInput,
+  CreateConsultationInput,
+  UpdateConsultationInput,
+  AddPrescriptionInput,
+  ConsultationListQueryParams,
+} from './types/consultations.types';
 
 export class DoctorConsultationsService {
   /**
@@ -114,16 +79,9 @@ export class DoctorConsultationsService {
   /**
    * Recherche et liste les consultations avec pagination, filtres par type, statut et date.
    */
-  async listConsultations(params: {
-    search?: string;
-    type?: ConsultationType;
-    status?: ConsultationStatus;
-    date?: string;
-    page: number;
-    limit: number;
-  }) {
-    const page = Math.max(1, params.page);
-    const limit = Math.max(1, Math.min(100, params.limit));
+  async listConsultations(params: ConsultationListQueryParams) {
+    const page = Math.max(1, params.page || 1);
+    const limit = Math.max(1, Math.min(100, params.limit || 20));
     const skip = (page - 1) * limit;
 
     const where: Prisma.ConsultationWhereInput = {};
@@ -155,13 +113,14 @@ export class DoctorConsultationsService {
           patient: {
             OR: [
               { registrationNumber: { contains: q, mode: 'insensitive' } },
-              { department: { contains: q, mode: 'insensitive' } },
               {
                 user: {
                   OR: [
                     { firstName: { contains: q, mode: 'insensitive' } },
                     { lastName: { contains: q, mode: 'insensitive' } },
                     { matricule: { contains: q, mode: 'insensitive' } },
+                    { department: { contains: q, mode: 'insensitive' } },
+                    { jobTitle: { contains: q, mode: 'insensitive' } },
                   ],
                 },
               },
@@ -184,8 +143,7 @@ export class DoctorConsultationsService {
               id: true,
               registrationNumber: true,
               gender: true,
-              department: true,
-              jobTitle: true,
+              bloodGroup: true,
               user: {
                 select: {
                   firstName: true,
@@ -193,6 +151,8 @@ export class DoctorConsultationsService {
                   matricule: true,
                   email: true,
                   phone: true,
+                  department: true,
+                  jobTitle: true,
                 },
               },
             },
@@ -242,8 +202,8 @@ export class DoctorConsultationsService {
           id: c.patient.id,
           registrationNumber: c.patient.registrationNumber,
           gender: c.patient.gender,
-          department: c.patient.department,
-          jobTitle: c.patient.jobTitle,
+          department: c.patient.user.department,
+          jobTitle: c.patient.user.jobTitle,
           firstName: c.patient.user.firstName,
           lastName: c.patient.user.lastName,
           matricule: c.patient.user.matricule,
@@ -261,6 +221,7 @@ export class DoctorConsultationsService {
             temperatureC: latestVitals.temperatureC ? Number(latestVitals.temperatureC) : null,
             bmi: latestVitals.bmi ? Number(latestVitals.bmi) : (bmiData ? bmiData.bmi : null),
             bmiCategory: bmiData ? bmiData.label : null,
+            bloodGroup: c.patient.bloodGroup,
           }
           : null,
         prescriptionsCount: c._count.prescriptions,
@@ -354,6 +315,7 @@ export class DoctorConsultationsService {
           weightKg: latestVitals.weightKg ? Number(latestVitals.weightKg) : null,
           bmi: bmiInfo ? bmiInfo.bmi : (latestVitals.bmi ? Number(latestVitals.bmi) : null),
           bmiLabel: bmiInfo ? bmiInfo.label : null,
+          bloodGroup: consultation.patient.bloodGroup,
           isAbnormal: latestVitals.isAbnormal,
         }
         : null,
@@ -403,20 +365,26 @@ export class DoctorConsultationsService {
       temp !== null ||
       systolic !== null ||
       diastolic !== null ||
-      input.vitals?.heartRate !== undefined ||
-      input.vitals?.oxygenSaturation !== undefined;
+      input.vitals?.respiratoryRate !== undefined ||
+      input.vitals?.bloodGroup !== undefined;
 
     const isAbnormal = hasVitals
       ? isVitalSignAbnormal({
         temperatureC: temp,
         bloodPressureSystolic: systolic,
         bloodPressureDiastolic: diastolic,
-        heartRate: input.vitals?.heartRate,
-        oxygenSaturation: input.vitals?.oxygenSaturation,
       })
       : false;
 
     return prisma.$transaction(async (tx) => {
+      // Si le groupe sanguin est renseigne dans les constantes, on met a jour le dossier patient
+      if (input.vitals?.bloodGroup && input.vitals.bloodGroup.trim() !== '') {
+        await tx.patient.update({
+          where: { id: input.patientId },
+          data: { bloodGroup: input.vitals.bloodGroup.trim() },
+        });
+      }
+
       const consultation = await tx.consultation.create({
         data: {
           patientId: input.patientId,
@@ -442,12 +410,7 @@ export class DoctorConsultationsService {
             temperatureC: temp !== null ? new Prisma.Decimal(temp) : null,
             bloodPressureSystolic: systolic,
             bloodPressureDiastolic: diastolic,
-            heartRate: input.vitals?.heartRate ?? null,
             respiratoryRate: input.vitals?.respiratoryRate ?? null,
-            oxygenSaturation:
-              input.vitals?.oxygenSaturation !== undefined
-                ? new Prisma.Decimal(input.vitals.oxygenSaturation)
-                : null,
             isAbnormal,
           },
         });
@@ -486,6 +449,14 @@ export class DoctorConsultationsService {
     }
 
     return prisma.$transaction(async (tx) => {
+      // Si le groupe sanguin est renseigne, synchronisation avec le patient
+      if (input.vitals?.bloodGroup && input.vitals.bloodGroup.trim() !== '') {
+        await tx.patient.update({
+          where: { id: existing.patientId },
+          data: { bloodGroup: input.vitals.bloodGroup.trim() },
+        });
+      }
+
       // 1. Mise a jour des constantes si specifiees
       if (input.vitals) {
         let systolic: number | null = null;
@@ -514,8 +485,6 @@ export class DoctorConsultationsService {
           temperatureC: temp,
           bloodPressureSystolic: systolic,
           bloodPressureDiastolic: diastolic,
-          heartRate: input.vitals.heartRate,
-          oxygenSaturation: input.vitals.oxygenSaturation,
         });
 
         await tx.vitalSign.create({
@@ -528,12 +497,7 @@ export class DoctorConsultationsService {
             temperatureC: temp !== null ? new Prisma.Decimal(temp) : null,
             bloodPressureSystolic: systolic,
             bloodPressureDiastolic: diastolic,
-            heartRate: input.vitals.heartRate ?? null,
             respiratoryRate: input.vitals.respiratoryRate ?? null,
-            oxygenSaturation:
-              input.vitals.oxygenSaturation !== undefined
-                ? new Prisma.Decimal(input.vitals.oxygenSaturation)
-                : null,
             isAbnormal,
           },
         });

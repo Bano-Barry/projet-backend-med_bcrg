@@ -26,9 +26,13 @@ export const vitalSignsInputSchema = z.object({
   temperatureC: z.number().min(30).max(45).optional(),
   heightCm: z.number().min(30).max(260).optional(),
   weightKg: z.number().min(1).max(350).optional(),
-  heartRate: z.number().int().min(30).max(250).optional(),
+  bloodGroup: z
+    .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], {
+      errorMap: () => ({ message: 'Groupe sanguin invalide (ex: A+, O-, B+...)' }),
+    })
+    .optional()
+    .or(z.literal('')),
   respiratoryRate: z.number().int().min(5).max(80).optional(),
-  oxygenSaturation: z.number().min(50).max(100).optional(),
 });
 
 /**

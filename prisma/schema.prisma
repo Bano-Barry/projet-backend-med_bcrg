@@ -64,6 +64,8 @@ model User {
   lastName     String    @map("last_name") @db.VarChar(100)
   role         UserRole  @default(EMPLOYEE)
   phone        String?   @unique @db.VarChar(30)
+  department   String?   @db.VarChar(100)
+  jobTitle     String?   @map("job_title") @db.VarChar(100)
   isFirstLogin Boolean   @default(true) @map("is_first_login")
   isActive     Boolean   @default(true) @map("is_active")
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz
@@ -88,8 +90,6 @@ model Patient {
   registrationNumber String   @unique @map("registration_number") @db.VarChar(50)
   gender             String   @db.VarChar(10)
   phone              String?  @unique @db.VarChar(30)
-  department         String   @db.VarChar(100)
-  jobTitle           String   @map("job_title") @db.VarChar(100)
   bloodGroup         String?  @map("blood_group") @db.VarChar(5)
   medicalHistory     String?  @map("medical_history") @db.Text
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz

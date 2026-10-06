@@ -12,34 +12,12 @@ import {
 } from '../../core/errors';
 import { AuthenticatedUser } from '../../core/types/auth.types';
 import { hashPassword } from '../../core/utils/security';
-
-export interface CreatePatientInput {
-  matricule: string;
-  firstName: string;
-  lastName: string;
-  email?: string;
-  phone?: string;
-  gender: 'M' | 'F';
-  department: string;
-  jobTitle: string;
-  bloodGroup?: string;
-  medicalHistory?: string;
-}
-
-export interface UpdatePatientInput {
-  phone?: string;
-  department?: string;
-  jobTitle?: string;
-  bloodGroup?: string;
-  medicalHistory?: string;
-}
-
-export interface AddAllergyInput {
-  allergyType: AllergyType;
-  substance: string;
-  reactionDetails?: string;
-  severity?: AllergySeverity;
-}
+import {
+  CreatePatientInput,
+  UpdatePatientInput,
+  AddAllergyInput,
+  FormattedPatientResponse,
+} from './types/patients.types';
 
 export class PatientsService {
   /**
@@ -124,18 +102,26 @@ export class PatientsService {
               lastName: data.lastName.trim(),
               role: UserRole.EMPLOYEE,
               phone: cleanPhone,
+              department: data.department.trim(),
+              jobTitle: data.jobTitle.trim(),
               isFirstLogin: true,
               isActive: true,
             },
           });
         } else {
-          // Synchronisation du telephone ou de l'email sur le compte existant si non renseignes
-          const userUpdates: { phone?: string; email?: string } = {};
+          // Synchronisation des coordonnees et informations professionnelles si necessaire
+          const userUpdates: { phone?: string; email?: string; department?: string; jobTitle?: string } = {};
           if (cleanPhone && !user.phone) {
             userUpdates.phone = cleanPhone;
           }
           if (cleanEmail && !user.email) {
             userUpdates.email = cleanEmail;
+          }
+          if (data.department) {
+            userUpdates.department = data.department.trim();
+          }
+          if (data.jobTitle) {
+            userUpdates.jobTitle = data.jobTitle.trim();
           }
 
           if (Object.keys(userUpdates).length > 0) {
@@ -152,8 +138,6 @@ export class PatientsService {
             registrationNumber: matriculeTrimmed,
             gender: data.gender,
             phone: cleanPhone,
-            department: data.department.trim(),
-            jobTitle: data.jobTitle.trim(),
             bloodGroup: data.bloodGroup || null,
             medicalHistory: data.medicalHistory ? data.medicalHistory.trim() : null,
           },
@@ -166,6 +150,8 @@ export class PatientsService {
                 lastName: true,
                 email: true,
                 phone: true,
+                department: true,
+                jobTitle: true,
                 role: true,
                 isFirstLogin: true,
               },
@@ -174,13 +160,43 @@ export class PatientsService {
           },
         });
 
-        return patient;
+        return this.formatPatientResponse(patient);
       },
       {
         maxWait: 10000,
         timeout: 25000,
       }
     );
+  }
+
+  /**
+   * Nettoie et formate la fiche d'un employe pour eviter toute redondance (phone, userId, etc.) hors de user{}.
+   */
+  private formatPatientResponse(patient: any): FormattedPatientResponse {
+    return {
+      id: patient.id,
+      gender: patient.gender,
+      bloodGroup: patient.bloodGroup,
+      medicalHistory: patient.medicalHistory,
+      createdAt: patient.createdAt,
+      updatedAt: patient.updatedAt,
+      user: patient.user
+        ? {
+          id: patient.user.id,
+          matricule: patient.user.matricule,
+          firstName: patient.user.firstName,
+          lastName: patient.user.lastName,
+          email: patient.user.email,
+          phone: patient.user.phone,
+          department: patient.user.department,
+          jobTitle: patient.user.jobTitle,
+          role: patient.user.role,
+          ...(patient.user.isFirstLogin !== undefined ? { isFirstLogin: patient.user.isFirstLogin } : {}),
+          ...(patient.user.isActive !== undefined ? { isActive: patient.user.isActive } : {}),
+        }
+        : undefined,
+      allergies: patient.allergies || [],
+    };
   }
 
   /**
@@ -202,9 +218,11 @@ export class PatientsService {
     const whereClause: any = {};
 
     if (params.department) {
-      whereClause.department = {
-        contains: params.department,
-        mode: 'insensitive',
+      whereClause.user = {
+        department: {
+          contains: params.department,
+          mode: 'insensitive',
+        },
       };
     }
 
@@ -212,14 +230,14 @@ export class PatientsService {
       const searchTerms = params.search.trim();
       whereClause.OR = [
         { registrationNumber: { contains: searchTerms, mode: 'insensitive' } },
-        { department: { contains: searchTerms, mode: 'insensitive' } },
-        { jobTitle: { contains: searchTerms, mode: 'insensitive' } },
         {
           user: {
             OR: [
               { firstName: { contains: searchTerms, mode: 'insensitive' } },
               { lastName: { contains: searchTerms, mode: 'insensitive' } },
               { matricule: { contains: searchTerms, mode: 'insensitive' } },
+              { department: { contains: searchTerms, mode: 'insensitive' } },
+              { jobTitle: { contains: searchTerms, mode: 'insensitive' } },
             ],
           },
         },
@@ -262,7 +280,7 @@ export class PatientsService {
     ]);
 
     return {
-      data: patients,
+      data: patients.map((p) => this.formatPatientResponse(p)),
       pagination: {
         page,
         limit,
@@ -293,6 +311,8 @@ export class PatientsService {
             email: true,
             role: true,
             phone: true,
+            department: true,
+            jobTitle: true,
             isActive: true,
           },
         },
@@ -313,7 +333,7 @@ export class PatientsService {
       );
     }
 
-    return patient;
+    return this.formatPatientResponse(patient);
   }
 
   /**
@@ -334,6 +354,9 @@ export class PatientsService {
             lastName: true,
             email: true,
             role: true,
+            phone: true,
+            department: true,
+            jobTitle: true,
           },
         },
         allergies: true,
@@ -346,7 +369,7 @@ export class PatientsService {
       );
     }
 
-    return patient;
+    return this.formatPatientResponse(patient);
   }
 
   /**
@@ -392,11 +415,22 @@ export class PatientsService {
     }
 
     return prisma.$transaction(async (tx) => {
-      // Synchronisation du telephone sur le compte utilisateur associe
-      if (cleanPhone !== undefined && existing.userId) {
+      // Synchronisation sur le compte utilisateur associe
+      const userUpdates: { phone?: string | null; department?: string; jobTitle?: string } = {};
+      if (cleanPhone !== undefined) {
+        userUpdates.phone = cleanPhone;
+      }
+      if (data.department !== undefined) {
+        userUpdates.department = data.department.trim();
+      }
+      if (data.jobTitle !== undefined) {
+        userUpdates.jobTitle = data.jobTitle.trim();
+      }
+
+      if (Object.keys(userUpdates).length > 0 && existing.userId) {
         await tx.user.update({
           where: { id: existing.userId },
-          data: { phone: cleanPhone },
+          data: userUpdates,
         });
       }
 
@@ -404,26 +438,28 @@ export class PatientsService {
         where: { id: patientId },
         data: {
           phone: cleanPhone,
-          department: data.department !== undefined ? data.department.trim() : undefined,
-          jobTitle: data.jobTitle !== undefined ? data.jobTitle.trim() : undefined,
           bloodGroup: data.bloodGroup !== undefined ? (data.bloodGroup || null) : undefined,
           medicalHistory: data.medicalHistory !== undefined ? (data.medicalHistory ? data.medicalHistory.trim() : null) : undefined,
         },
         include: {
           user: {
             select: {
+              id: true,
               firstName: true,
               lastName: true,
               matricule: true,
               email: true,
               phone: true,
+              department: true,
+              jobTitle: true,
+              role: true,
             },
           },
           allergies: true,
         },
       });
 
-      return updated;
+      return this.formatPatientResponse(updated);
     },
     {
       maxWait: 10000,

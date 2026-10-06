@@ -81,8 +81,6 @@ export interface VitalSignParams {
   temperatureC?: number | null;
   bloodPressureSystolic?: number | null;
   bloodPressureDiastolic?: number | null;
-  heartRate?: number | null;
-  oxygenSaturation?: number | null;
 }
 
 /**
@@ -114,20 +112,6 @@ export const isVitalSignAbnormal = (vitals: VitalSignParams): boolean => {
     vitals.bloodPressureDiastolic !== null
   ) {
     if (vitals.bloodPressureDiastolic >= 90 || vitals.bloodPressureDiastolic <= 60) {
-      return true;
-    }
-  }
-
-  // Tachycardie (> 100 bpm) ou bradycardie (< 50 bpm)
-  if (vitals.heartRate !== undefined && vitals.heartRate !== null) {
-    if (vitals.heartRate > 100 || vitals.heartRate < 50) {
-      return true;
-    }
-  }
-
-  // Desaturation SpO2 (< 95%)
-  if (vitals.oxygenSaturation !== undefined && vitals.oxygenSaturation !== null) {
-    if (vitals.oxygenSaturation < 95) {
       return true;
     }
   }

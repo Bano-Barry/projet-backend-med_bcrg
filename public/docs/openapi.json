@@ -438,10 +438,10 @@
           {
             "name": "limit",
             "in": "query",
-            "description": "Nombre de resultats par page (defaut: 20)",
+            "description": "Nombre de resultats par page (defaut: 10)",
             "schema": {
               "type": "integer",
-              "default": 20
+              "default": 10
             }
           }
         ],
@@ -986,7 +986,7 @@
             "description": "Resultats par page",
             "schema": {
               "type": "integer",
-              "default": 20
+              "default": 10
             }
           }
         ],
@@ -1253,7 +1253,7 @@
         },
         "responses": {
           "201": {
-            "description": "Prescription ajoutée avec succès.",
+            "description": "Prescription ajoutee avec succes.",
             "content": {
               "application/json": {
                 "example": {
@@ -1411,8 +1411,23 @@
                   "data": {
                     "id": "uuid",
                     "registrationNumber": "2004",
+                    "gender": "M",
+                    "department": "Direction des Systèmes d'Information",
+                    "jobTitle": "Ingénieur Logiciel DSI",
                     "bloodGroup": "O+",
                     "medicalHistory": "Asthme modere dans l'enfance",
+                    "createdAt": "2026-09-30T09:00:00.000Z",
+                    "user": {
+                      "id": "uuid",
+                      "matricule": "2004",
+                      "firstName": "Mamadou BANO",
+                      "lastName": "BARRY",
+                      "email": "mamadoub.barry@bcrg-guinee.org",
+                      "phone": "+224627000000",
+                      "department": "Direction des Systèmes d'Information",
+                      "jobTitle": "Ingénieur Logiciel DSI",
+                      "role": "EMPLOYEE"
+                    },
                     "allergies": [],
                     "consultations": [],
                     "vitalSignsHistory": []
@@ -1520,6 +1535,18 @@
                     "type": "string",
                     "example": "BARRY"
                   },
+                  "phone": {
+                    "type": "string",
+                    "example": "+224627000000"
+                  },
+                  "department": {
+                    "type": "string",
+                    "example": "Direction des Systèmes d'Information"
+                  },
+                  "jobTitle": {
+                    "type": "string",
+                    "example": "Ingénieur Logiciel DSI"
+                  },
                   "role": {
                     "type": "string",
                     "enum": [
@@ -1532,6 +1559,20 @@
                   "isFirstLogin": {
                     "type": "boolean",
                     "example": true
+                  },
+                  "patient": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "bloodGroup": {
+                        "type": "string",
+                        "example": "O+"
+                      }
+                    }
                   }
                 }
               },
@@ -1590,6 +1631,14 @@
                 "type": "string",
                 "example": "+224627000000"
               },
+              "department": {
+                "type": "string",
+                "example": "Direction des Systèmes d'Information"
+              },
+              "jobTitle": {
+                "type": "string",
+                "example": "Ingénieur Logiciel DSI"
+              },
               "isFirstLogin": {
                 "type": "boolean",
                 "example": false
@@ -1614,21 +1663,17 @@
                     "type": "string",
                     "format": "uuid"
                   },
-                  "registrationNumber": {
-                    "type": "string",
-                    "example": "2004"
-                  },
                   "gender": {
                     "type": "string",
                     "example": "M"
                   },
-                  "department": {
+                  "bloodGroup": {
                     "type": "string",
-                    "example": "Direction des Systèmes d'Information"
+                    "example": "O+"
                   },
-                  "jobTitle": {
+                  "medicalHistory": {
                     "type": "string",
-                    "example": "Ingénieur Logiciel DSI"
+                    "example": "Asthme modéré dans l'enfance"
                   }
                 }
               }
@@ -1872,31 +1917,12 @@
             "properties": {
               "id": {
                 "type": "string",
-                "format": "uuid"
-              },
-              "userId": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "registrationNumber": {
-                "type": "string",
-                "example": "2004"
+                "format": "uuid",
+                "description": "Identifiant unique de la fiche medicale patient"
               },
               "gender": {
                 "type": "string",
                 "example": "M"
-              },
-              "phone": {
-                "type": "string",
-                "example": "+224627000000"
-              },
-              "department": {
-                "type": "string",
-                "example": "Direction des Systèmes d'Information"
-              },
-              "jobTitle": {
-                "type": "string",
-                "example": "Ingénieur Logiciel DSI"
               },
               "bloodGroup": {
                 "type": "string",
@@ -1940,6 +1966,14 @@
                   "phone": {
                     "type": "string",
                     "example": "+224627000000"
+                  },
+                  "department": {
+                    "type": "string",
+                    "example": "Direction des Systèmes d'Information"
+                  },
+                  "jobTitle": {
+                    "type": "string",
+                    "example": "Ingénieur Logiciel DSI"
                   },
                   "role": {
                     "type": "string",
@@ -1991,21 +2025,25 @@
                   "type": "string",
                   "format": "uuid"
                 },
-                "registrationNumber": {
+                "gender": {
                   "type": "string",
-                  "example": "2004"
+                  "example": "M"
                 },
-                "department": {
+                "bloodGroup": {
                   "type": "string",
-                  "example": "Direction des Systèmes d'Information"
-                },
-                "jobTitle": {
-                  "type": "string",
-                  "example": "Ingénieur Logiciel DSI"
+                  "example": "O+"
                 },
                 "user": {
                   "type": "object",
                   "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "matricule": {
+                      "type": "string",
+                      "example": "2004"
+                    },
                     "firstName": {
                       "type": "string",
                       "example": "Mamadou BANO"
@@ -2014,9 +2052,21 @@
                       "type": "string",
                       "example": "BARRY"
                     },
-                    "matricule": {
+                    "email": {
                       "type": "string",
-                      "example": "2004"
+                      "example": "mamadoub.barry@bcrg-guinee.org"
+                    },
+                    "phone": {
+                      "type": "string",
+                      "example": "+224627000000"
+                    },
+                    "department": {
+                      "type": "string",
+                      "example": "Direction des Systèmes d'Information"
+                    },
+                    "jobTitle": {
+                      "type": "string",
+                      "example": "Ingénieur Logiciel DSI"
                     }
                   }
                 },
@@ -2038,7 +2088,7 @@
               },
               "limit": {
                 "type": "integer",
-                "example": 20
+                "example": 10
               },
               "total": {
                 "type": "integer",
@@ -2147,15 +2197,20 @@
                 "description": "Poids en kg",
                 "example": 70
               },
-              "heartRate": {
-                "type": "integer",
-                "description": "Frequence cardiaque en bpm",
-                "example": 72
-              },
-              "oxygenSaturation": {
-                "type": "number",
-                "description": "Saturation O2 en %",
-                "example": 98
+              "bloodGroup": {
+                "type": "string",
+                "enum": [
+                  "A+",
+                  "A-",
+                  "B+",
+                  "B-",
+                  "AB+",
+                  "AB-",
+                  "O+",
+                  "O-"
+                ],
+                "description": "Groupe sanguin du patient",
+                "example": "O+"
               }
             }
           }
@@ -2288,7 +2343,15 @@
                   },
                   "department": {
                     "type": "string",
-                    "example": "DSI"
+                    "example": "Direction des Systèmes d'Information"
+                  },
+                  "jobTitle": {
+                    "type": "string",
+                    "example": "Ingénieur Logiciel DSI"
+                  },
+                  "bloodGroup": {
+                    "type": "string",
+                    "example": "O+"
                   },
                   "user": {
                     "type": "object"
@@ -2340,6 +2403,10 @@
                   "bmiLabel": {
                     "type": "string",
                     "example": "Normal"
+                  },
+                  "bloodGroup": {
+                    "type": "string",
+                    "example": "O+"
                   },
                   "isAbnormal": {
                     "type": "boolean",
@@ -2412,7 +2479,7 @@
               },
               "limit": {
                 "type": "integer",
-                "example": 20
+                "example": 10
               },
               "total": {
                 "type": "integer",
