@@ -10,6 +10,7 @@
 
 import path from 'path';
 import fs from 'fs';
+// @ts-ignore
 import PDFDocument from 'pdfkit';
 import { PrescriptionPdfData } from './documents.types';
 
