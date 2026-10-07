@@ -943,6 +943,46 @@ export const swaggerDocument = {
         },
       },
     },
+    '/api/doctor/consultations/{id}/prescription/generate': {
+      post: {
+        tags: ['Medecin - Consultations'],
+        summary: 'Generer automatiquement l\'ordonnance officielle en PDF',
+        description:
+          'Genere un document PDF d\'ordonnance medicale conforme a la charte officielle BCRG a partir des prescriptions et du diagnostic de la consultation. Le document est stocke et rattache au dossier medical du patient.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant UUID de la consultation',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          201: {
+            description: 'Ordonnance generee et enregistree avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MedicalDocumentSingleResponse' },
+              },
+            },
+          },
+          400: {
+            description: 'Aucune prescription a inclure dans l\'ordonnance.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
+          404: {
+            description: 'Consultation introuvable.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
+        },
+      },
+    },
     '/api/doctor/patients/search': {
       get: {
         tags: ['Medecin - Dossiers & Recherche'],
@@ -1019,6 +1059,111 @@ export const swaggerDocument = {
                   },
                 },
               },
+            },
+          },
+        },
+      },
+    },
+    '/api/doctor/patients/{id}/documents': {
+      get: {
+        tags: ['Medecin - Dossiers & Recherche'],
+        summary: 'Liste des documents medicaux du patient',
+        description: 'Recupere tous les documents generes (ordonnances, fiches de liaison...) du patient avec liens directs de visualisation et telechargement.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant UUID du patient',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Liste des documents du patient recuperee avec succes.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MedicalDocumentListResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Patient introuvable.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
+        },
+      },
+    },
+    '/api/doctor/documents/{documentId}/view': {
+      get: {
+        tags: ['Medecin - Dossiers & Recherche'],
+        summary: 'Visualiser un document medical (PDF en ligne)',
+        description: 'Affiche directement le document PDF dans le navigateur ou dans le tiroir patient (Content-Disposition: inline).',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'documentId',
+            in: 'path',
+            required: true,
+            description: 'Identifiant UUID du document medical',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Flux binaire du fichier PDF.',
+            content: {
+              'application/pdf': {
+                schema: {
+                  type: 'string',
+                  format: 'binary',
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Document introuvable sur le disque ou en base de donnees.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
+        },
+      },
+    },
+    '/api/doctor/documents/{documentId}/download': {
+      get: {
+        tags: ['Medecin - Dossiers & Recherche'],
+        summary: 'Telecharger un document medical (PDF en piece jointe)',
+        description: 'Declenche le telechargement securise du document PDF (Content-Disposition: attachment).',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'documentId',
+            in: 'path',
+            required: true,
+            description: 'Identifiant UUID du document medical',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Fichier PDF en telechargement binaire.',
+            content: {
+              'application/pdf': {
+                schema: {
+                  type: 'string',
+                  format: 'binary',
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Document introuvable sur le disque ou en base de donnees.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
             },
           },
         },
@@ -1455,6 +1600,39 @@ export const swaggerDocument = {
               total: { type: 'integer', example: 2 },
               totalPages: { type: 'integer', example: 1 },
             },
+          },
+        },
+      },
+      MedicalDocumentItem: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          patientId: { type: 'string', format: 'uuid' },
+          consultationId: { type: 'string', format: 'uuid', nullable: true },
+          title: { type: 'string', example: 'Ordonnance - 06 oct. 2026' },
+          documentType: { type: 'string', example: 'PRESCRIPTION' },
+          mimeType: { type: 'string', example: 'application/pdf' },
+          fileSize: { type: 'integer', example: 14500 },
+          createdAt: { type: 'string', format: 'date-time' },
+          viewUrl: { type: 'string', example: '/api/doctor/documents/c8872f2d-88b0-466d-8e47-e2a2ba784382/view' },
+          downloadUrl: { type: 'string', example: '/api/doctor/documents/c8872f2d-88b0-466d-8e47-e2a2ba784382/download' },
+        },
+      },
+      MedicalDocumentSingleResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          message: { type: 'string', example: 'Ordonnance générée et enregistrée avec succès.' },
+          data: { $ref: '#/components/schemas/MedicalDocumentItem' },
+        },
+      },
+      MedicalDocumentListResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/MedicalDocumentItem' },
           },
         },
       },

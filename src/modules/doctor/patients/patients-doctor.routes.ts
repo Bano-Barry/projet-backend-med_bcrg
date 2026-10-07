@@ -10,6 +10,8 @@ import { searchPatientsQuerySchema } from '../consultations/consultations.schema
 
 const router = Router();
 
+import { doctorDocumentsController } from '../documents/doctor-documents.controller';
+
 /**
  * Autocompletion de recherche de patient (nom, prenom, matricule).
  */
@@ -27,4 +29,14 @@ router.get(
   patientsDoctorController.getMedicalRecord.bind(patientsDoctorController)
 );
 
+/**
+ * Liste des documents medicaux d'un patient (ordonnances, justificatifs...).
+ * Alimente l'onglet "Documents" du dossier patient.
+ */
+router.get(
+  '/:id/documents',
+  doctorDocumentsController.getPatientDocuments.bind(doctorDocumentsController)
+);
+
 export const patientsDoctorRoutes = router;
+

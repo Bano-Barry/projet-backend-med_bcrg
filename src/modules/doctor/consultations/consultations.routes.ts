@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { doctorConsultationsController } from './consultations.controller';
 import { validateRequest } from '../../../core/middlewares/validate.middleware';
+import { doctorDocumentsController } from '../documents/doctor-documents.controller';
 import {
   createConsultationSchema,
   updateConsultationSchema,
@@ -56,6 +57,7 @@ router.patch(
   doctorConsultationsController.updateConsultation.bind(doctorConsultationsController)
 );
 
+
 /**
  * Ajouter une ligne de prescription (ordonnance).
  */
@@ -74,4 +76,13 @@ router.delete(
   doctorConsultationsController.deletePrescription.bind(doctorConsultationsController)
 );
 
+/**
+ * Generer automatiquement l'ordonnance officielle (document PDF) et l'enregistrer en GED.
+ */
+router.post(
+  '/:id/prescription/generate',
+  doctorDocumentsController.generatePrescription.bind(doctorDocumentsController)
+);
+
 export const doctorConsultationsRoutes = router;
+

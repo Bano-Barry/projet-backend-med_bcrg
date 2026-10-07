@@ -14,6 +14,8 @@ import {
 import { doctorConsultationsRoutes } from './consultations/consultations.routes';
 import { patientsDoctorRoutes } from './patients/patients-doctor.routes';
 
+import { doctorDocumentsController } from './documents/doctor-documents.controller';
+
 const router = Router();
 
 // 1. Authentification obligatoire pour tout le perimetre medecin
@@ -29,4 +31,15 @@ router.use(requireRoles(UserRole.DOCTOR));
 router.use('/consultations', doctorConsultationsRoutes);
 router.use('/patients', patientsDoctorRoutes);
 
+// 5. Consultation et telechargement de documents medicaux (ordonnances, etc.)
+router.get(
+  '/documents/:documentId/view',
+  doctorDocumentsController.viewDocument.bind(doctorDocumentsController)
+);
+router.get(
+  '/documents/:documentId/download',
+  doctorDocumentsController.downloadDocument.bind(doctorDocumentsController)
+);
+
 export const doctorRoutes = router;
+
