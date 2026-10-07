@@ -33,7 +33,7 @@ export class PrescriptionPdfService {
    * Enregistre les typographies officielles BCRG (LaGuinze et Verdana) dans PDFKit.
    * Dispose de fallbacks Helvetica au cas ou les fichiers ne seraient pas disponibles.
    */
-  private registerCustomFonts(doc: PDFKit.PDFDocument): {
+  private registerCustomFonts(doc: any): {
     titleFontBold: string;
     titleFontRegular: string;
     bodyFontRegular: string;
@@ -119,9 +119,9 @@ export class PrescriptionPdfService {
       });
 
       const chunks: Buffer[] = [];
-      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', (err) => reject(err));
+      doc.on('error', (err: Error) => reject(err));
 
       // Typographies officielles BCRG
       const fonts = this.registerCustomFonts(doc);
