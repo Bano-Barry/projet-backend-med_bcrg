@@ -836,6 +836,52 @@
         }
       }
     },
+    "/api/doctor/dashboard": {
+      "get": {
+        "tags": [
+          "Medecin - Consultations"
+        ],
+        "summary": "Vue d'ensemble complete du tableau de bord medecin",
+        "description": "Fournit l'integralite des indicateurs du dashboard : 5 KPIs superieurs (consultations du jour, actives, departements, personnel examine, utilisateurs), historique hebdomadaire sur 7 jours (LUN-DIM), alertes et taches prioritaires, top 5 des consultations recentes et raccourcis d'acces rapide.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Donnees completes du dashboard recuperees avec succes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorDashboardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifie.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Acces reserve au personnel soignant (DOCTOR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/doctor/consultations/stats": {
       "get": {
         "tags": [
@@ -2733,6 +2779,182 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MedicalDocumentItem"
+            }
+          }
+        }
+      },
+      "DoctorDashboardResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Données du tableau de bord médecin récupérées avec succès."
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "kpis": {
+                "type": "object",
+                "properties": {
+                  "consultationsToday": {
+                    "type": "integer",
+                    "example": 2
+                  },
+                  "activeConsultations": {
+                    "type": "integer",
+                    "example": 2
+                  },
+                  "departmentsCount": {
+                    "type": "integer",
+                    "example": 12
+                  },
+                  "patientsExaminedCount": {
+                    "type": "integer",
+                    "example": 15
+                  },
+                  "usersCount": {
+                    "type": "integer",
+                    "example": 4
+                  }
+                }
+              },
+              "weeklyActivity": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "day": {
+                      "type": "string",
+                      "example": "LUN"
+                    },
+                    "date": {
+                      "type": "string",
+                      "example": "2026-10-05"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "example": 2
+                    }
+                  }
+                }
+              },
+              "alerts": {
+                "type": "object",
+                "properties": {
+                  "pendingCount": {
+                    "type": "integer",
+                    "example": 0
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "alert-1"
+                        },
+                        "type": {
+                          "type": "string",
+                          "example": "STOCK_ALERT"
+                        },
+                        "severity": {
+                          "type": "string",
+                          "example": "CRITICAL"
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Rupture de stock : Paracétamol"
+                        },
+                        "description": {
+                          "type": "string",
+                          "example": "Le stock est en dessous du seuil critique (5 boîtes restantes)."
+                        },
+                        "actionLabel": {
+                          "type": "string",
+                          "example": "Commander"
+                        },
+                        "actionUrl": {
+                          "type": "string",
+                          "example": "/pharmacie"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "recentConsultations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "patientName": {
+                      "type": "string",
+                      "example": "Mamadou Diallo"
+                    },
+                    "patientMatricule": {
+                      "type": "string",
+                      "example": "MAT-2026-001"
+                    },
+                    "consultationDate": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "formattedDate": {
+                      "type": "string",
+                      "example": "06 oct. 2026"
+                    },
+                    "type": {
+                      "type": "string",
+                      "example": "GENERAL"
+                    },
+                    "typeLabel": {
+                      "type": "string",
+                      "example": "GENERAL"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "COMPLETED"
+                    },
+                    "statusLabel": {
+                      "type": "string",
+                      "example": "TERMINEE"
+                    }
+                  }
+                }
+              },
+              "quickActions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "example": "new_patient"
+                    },
+                    "label": {
+                      "type": "string",
+                      "example": "Nouveau Patient"
+                    },
+                    "subtitle": {
+                      "type": "string",
+                      "example": "Ajouter un dossier médical"
+                    },
+                    "route": {
+                      "type": "string",
+                      "example": "/dossiers-medicaux/nouveau"
+                    }
+                  }
+                }
+              }
             }
           }
         }

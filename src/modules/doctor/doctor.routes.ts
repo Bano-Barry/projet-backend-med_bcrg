@@ -15,6 +15,7 @@ import { doctorConsultationsRoutes } from './consultations/consultations.routes'
 import { patientsDoctorRoutes } from './patients/patients-doctor.routes';
 
 import { doctorDocumentsController } from './documents/doctor-documents.controller';
+import { doctorDashboardController } from './dashboard/doctor-dashboard.controller';
 
 const router = Router();
 
@@ -27,7 +28,10 @@ router.use(requirePasswordChanged);
 // 3. Controle strict RBAC : reserve exclusivement au profil DOCTOR
 router.use(requireRoles(UserRole.DOCTOR));
 
-// 4. Enregistrement des sous-modules
+// 4. Tableau de bord medecin unifie
+router.get('/dashboard', doctorDashboardController.getDashboard.bind(doctorDashboardController));
+
+// 5. Enregistrement des sous-modules
 router.use('/consultations', doctorConsultationsRoutes);
 router.use('/patients', patientsDoctorRoutes);
 
