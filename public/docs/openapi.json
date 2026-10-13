@@ -39,6 +39,10 @@
     {
       "name": "Medecin - Dossiers & Recherche",
       "description": "Recherche rapide de patients et consultation du dossier medical complet par le personnel soignant."
+    },
+    {
+      "name": "Ressources Humaines & Reporting",
+      "description": "Pilotage RH, indicateurs agreges, activite diabetique et export officiel de rapport PDF."
     }
   ],
   "paths": {
@@ -1057,14 +1061,19 @@
               "example": {
                 "patientId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
                 "type": "GENERAL",
-                "reason": "Maux de tête persistants depuis 3 jours, légère fièvre.",
-                "diagnosis": "Céphalée de tension et fatigue générale",
-                "advice": "Repos recommandé, bonne hydratation",
+                "reason": "Suivi diabétique et maux de tête",
+                "diagnosis": "Diabète de type 2 équilibré",
+                "advice": "Régime pauvre en sucres rapides, bonne hydratation",
                 "vitals": {
                   "bloodPressure": "130/85",
-                  "temperatureC": 37.8,
+                  "temperatureC": 37.2,
                   "heightCm": 178,
                   "weightKg": 75
+                },
+                "glycemia": {
+                  "performed": true,
+                  "value": 1.18,
+                  "unit": "g/L"
                 }
               }
             }
@@ -1120,7 +1129,7 @@
           "Medecin - Consultations"
         ],
         "summary": "Detail d'une consultation (tiroir clinique)",
-        "description": "Recupere l'integralite des informations de la consultation : patient, constantes, ordonnances et diagnostic.",
+        "description": "Recupere l'integralite des informations de la consultation : patient, constantes, controle glycemique, ordonnances et diagnostic.",
         "security": [
           {
             "bearerAuth": []
@@ -1166,7 +1175,7 @@
           "Medecin - Consultations"
         ],
         "summary": "Mettre a jour ou cloturer une consultation",
-        "description": "Permet de mettre a jour le diagnostic, les notes ou de passer le statut a COMPLETED (TERMINEE).",
+        "description": "Permet de mettre a jour le diagnostic, les notes, la glycemie ou de passer le statut a COMPLETED (TERMINEE).",
         "security": [
           {
             "bearerAuth": []
@@ -1193,8 +1202,13 @@
               },
               "example": {
                 "status": "COMPLETED",
-                "diagnosis": "Céphalée de tension confirmée",
-                "advice": "Ordonnance délivrée, repos 48h"
+                "diagnosis": "Diabète de type 2 stable",
+                "advice": "Poursuite du traitement, contrôle dans 1 mois",
+                "glycemia": {
+                  "performed": true,
+                  "value": 1.2,
+                  "unit": "g/L"
+                }
               }
             }
           }
@@ -1645,6 +1659,240 @@
           },
           "404": {
             "description": "Document introuvable sur le disque ou en base de donnees.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/dashboard": {
+      "get": {
+        "tags": [
+          "Ressources Humaines & Reporting"
+        ],
+        "summary": "Tableau de bord RH et synthese d'activite",
+        "description": "Fournit aux responsables RH les indicateurs globaux du personnel et de l'infirmerie (effectifs actifs, volume de consultations ce mois, journees d'arret de travail). Reserve au role HR.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Donnees de synthese RH recuperees avec succes.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "totalEmployees": 45,
+                    "activeEmployees": 45,
+                    "departmentsCount": 8,
+                    "totalConsultationsThisMonth": 12,
+                    "totalSickLeaveDaysThisMonth": 8,
+                    "employeesOnSickLeaveCurrent": 2
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifie.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Droits insuffisants (reserve exclusivement au role HR).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/statistics": {
+      "get": {
+        "tags": [
+          "Ressources Humaines & Reporting"
+        ],
+        "summary": "Statistiques d'activite consolidees par direction",
+        "description": "Repartition anonymisee du volume de consultations et des jours d'arret par direction/departement.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Date de debut (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Date de fin (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statistiques recuperees avec succes.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "period": {
+                      "start": "2026-01-01T00:00:00.000Z",
+                      "end": "2026-12-31T23:59:59.000Z"
+                    },
+                    "totalConsultations": 24,
+                    "totalSickLeaves": 4,
+                    "totalSickLeaveDays": 14,
+                    "byDepartment": [
+                      {
+                        "department": "Direction des Systèmes d'Information",
+                        "employeeCount": 12,
+                        "consultationCount": 6,
+                        "sickLeaveDays": 3
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifie.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Acces reserve au role HR.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/statistics/diabetes": {
+      "get": {
+        "tags": [
+          "Ressources Humaines & Reporting"
+        ],
+        "summary": "Suivi agrege du diabete et consommation de bandelettes",
+        "description": "Indicateurs consolides conformes a la spec V4 : nombre de patients suivis, tests effectues, bandelettes consommees et stock restant.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statistiques de diabete recuperees avec succes.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "diabeticPatients": 28,
+                    "glycemiaChecks": 72,
+                    "stripConsumption": 72,
+                    "remainingStrips": 28
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifie.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Acces reserve au role HR.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hr/reports/export": {
+      "get": {
+        "tags": [
+          "Ressources Humaines & Reporting"
+        ],
+        "summary": "Exporter le rapport d'activite RH au format PDF",
+        "description": "Genere un rapport consolidé officiel A4 (charte graphique BCRG) contenant le resume des effectifs, l'activite diabetique et la repartition par direction.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flux binaire du fichier PDF officiel RH.",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifie.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Acces reserve au role HR.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2430,6 +2678,27 @@
                 "example": "O+"
               }
             }
+          },
+          "glycemia": {
+            "type": "object",
+            "description": "Contrôle glycémique intégré (1 contrôle effectué = 1 bandelette consommée)",
+            "properties": {
+              "performed": {
+                "type": "boolean",
+                "default": true,
+                "example": true
+              },
+              "value": {
+                "type": "number",
+                "description": "Valeur de la glycémie",
+                "example": 1.18
+              },
+              "unit": {
+                "type": "string",
+                "default": "g/L",
+                "example": "g/L"
+              }
+            }
           }
         }
       },
@@ -2470,6 +2739,50 @@
           "advice": {
             "type": "string",
             "example": "Repos 48h et ordonnance transmise"
+          },
+          "vitals": {
+            "type": "object",
+            "properties": {
+              "bloodPressure": {
+                "type": "string",
+                "example": "120/80"
+              },
+              "temperatureC": {
+                "type": "number",
+                "example": 37.2
+              },
+              "heightCm": {
+                "type": "number",
+                "example": 175
+              },
+              "weightKg": {
+                "type": "number",
+                "example": 70
+              },
+              "bloodGroup": {
+                "type": "string",
+                "example": "O+"
+              }
+            }
+          },
+          "glycemia": {
+            "type": "object",
+            "properties": {
+              "performed": {
+                "type": "boolean",
+                "default": true,
+                "example": true
+              },
+              "value": {
+                "type": "number",
+                "example": 1.2
+              },
+              "unit": {
+                "type": "string",
+                "default": "g/L",
+                "example": "g/L"
+              }
+            }
           }
         }
       },
@@ -2587,6 +2900,28 @@
                   "type": "object"
                 }
               },
+              "glycemia": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "performed": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "value": {
+                    "type": "number",
+                    "example": 1.18
+                  },
+                  "unit": {
+                    "type": "string",
+                    "example": "g/L"
+                  },
+                  "measuredAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
               "prescriptions": {
                 "type": "array",
                 "items": {
@@ -2671,6 +3006,24 @@
                 },
                 "doctor": {
                   "type": "object"
+                },
+                "glycemia": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "performed": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "value": {
+                      "type": "number",
+                      "example": 1.18
+                    },
+                    "unit": {
+                      "type": "string",
+                      "example": "g/L"
+                    }
+                  }
                 },
                 "vitalSigns": {
                   "type": "object",
@@ -2819,6 +3172,69 @@
                   "usersCount": {
                     "type": "integer",
                     "example": 4
+                  }
+                }
+              },
+              "diabetesKpis": {
+                "type": "object",
+                "description": "KPIs diabète et consommation de bandelettes",
+                "properties": {
+                  "diabeticPatients": {
+                    "type": "integer",
+                    "example": 5
+                  },
+                  "glycemiaChecks": {
+                    "type": "integer",
+                    "example": 12
+                  },
+                  "stripConsumption": {
+                    "type": "integer",
+                    "example": 12
+                  },
+                  "remainingStrips": {
+                    "type": "integer",
+                    "example": 88
+                  }
+                }
+              },
+              "diabeticMonthlyPassages": {
+                "type": "array",
+                "description": "Suivi des passages mensuels des collaborateurs diabétiques",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "patientId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "patientName": {
+                      "type": "string",
+                      "example": "Mamadou Diallo"
+                    },
+                    "registrationNumber": {
+                      "type": "string",
+                      "example": "MAT-2026-001"
+                    },
+                    "department": {
+                      "type": "string",
+                      "example": "Direction des Systèmes d'Information"
+                    },
+                    "monthlyVisits": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "lastCheckDate": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "lastGlycemiaValue": {
+                      "type": "number",
+                      "example": 1.15
+                    },
+                    "lastGlycemiaUnit": {
+                      "type": "string",
+                      "example": "g/L"
+                    }
                   }
                 }
               },

@@ -99,6 +99,7 @@ model Patient {
   allergies        PatientAllergy[]
   consultations    Consultation[]
   vitalSigns       VitalSign[]
+  glycemiaChecks   GlycemiaCheck[]
   sickLeaves       SickLeave[]
   medicalDocuments MedicalDocument[]
   auditLogs        AuditLog[]        @relation("TargetPatientAuditLogs")
@@ -149,6 +150,7 @@ model Consultation {
   prescriptions    Prescription[]
   sickLeave        SickLeave?
   medicalDocuments MedicalDocument[]
+  glycemiaCheck    GlycemiaCheck?
 
   @@index([patientId])
   @@index([doctorId])
@@ -262,4 +264,38 @@ model AuditLog {
   @@index([targetPatientId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ==============================================================================
+// 10. SUIVI GLYCÉMIQUE INTÉGRÉ (V4)
+// ==============================================================================
+model GlycemiaCheck {
+  id             String   @id @default(uuid()) @db.Uuid
+  consultationId String   @unique @map("consultation_id") @db.Uuid
+  patientId      String   @map("patient_id") @db.Uuid
+  performed      Boolean  @default(true)
+  value          Decimal? @db.Decimal(5, 2)
+  unit           String   @default("g/L") @db.VarChar(10)
+  measuredAt     DateTime @default(now()) @map("measured_at") @db.Timestamptz
+
+  consultation Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([measuredAt])
+  @@map("glycemia_checks")
+}
+
+// ==============================================================================
+// 11. STOCK THÉORIQUE DE FOURNITURES MÉDICALES (Bandelettes, etc.) (V4)
+// ==============================================================================
+model MedicalSupplyStock {
+  id           String   @id @default(uuid()) @db.Uuid
+  itemKey      String   @unique @map("item_key") @db.VarChar(50) // ex: "GLUCOSE_STRIPS"
+  label        String   @db.VarChar(150)
+  initialStock Int      @default(0) @map("initial_stock")
+  unit         String   @default("unité") @db.VarChar(30)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("medical_supply_stocks")
 }

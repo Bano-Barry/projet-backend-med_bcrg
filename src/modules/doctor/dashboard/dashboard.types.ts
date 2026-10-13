@@ -16,6 +16,28 @@ export interface DoctorDashboardKpis {
   usersCount: number;
 }
 
+export interface DiabetesKpis {
+  /** Nombre de patients diabétiques suivis */
+  diabeticPatients: number;
+  /** Total des contrôles glycémiques réalisés */
+  glycemiaChecks: number;
+  /** Nombre de bandelettes consommées (1 contrôle = 1 bandelette) */
+  stripConsumption: number;
+  /** Stock théorique restant (initial - consommées) */
+  remainingStrips: number;
+}
+
+export interface DiabeticPatientMonthlyPassage {
+  patientId: string;
+  patientName: string;
+  registrationNumber: string;
+  department?: string | null;
+  monthlyVisits: number;
+  lastCheckDate?: string | null;
+  lastGlycemiaValue?: number | null;
+  lastGlycemiaUnit?: string | null;
+}
+
 export interface WeeklyActivityItem {
   /** Nom abrege du jour (LUN, MAR, MER, JEU, VEN, SAM, DIM) */
   day: string;
@@ -61,6 +83,8 @@ export interface QuickActionItem {
 
 export interface DoctorDashboardData {
   kpis: DoctorDashboardKpis;
+  diabetesKpis: DiabetesKpis;
+  diabeticMonthlyPassages: DiabeticPatientMonthlyPassage[];
   weeklyActivity: WeeklyActivityItem[];
   alerts: DoctorAlertsData;
   recentConsultations: RecentConsultationItem[];

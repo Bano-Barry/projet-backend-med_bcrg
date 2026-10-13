@@ -13,6 +13,12 @@ export interface VitalSignsInput {
   bloodGroup?: string;
 }
 
+export interface GlycemiaInput {
+  performed: boolean;
+  value?: number;
+  unit?: string;
+}
+
 export interface CreateConsultationInput {
   patientId: string;
   type?: ConsultationType;
@@ -22,6 +28,7 @@ export interface CreateConsultationInput {
   diagnosis?: string;
   advice?: string;
   vitals?: VitalSignsInput;
+  glycemia?: GlycemiaInput;
 }
 
 export interface UpdateConsultationInput {
@@ -33,6 +40,7 @@ export interface UpdateConsultationInput {
   diagnosis?: string;
   advice?: string;
   vitals?: VitalSignsInput;
+  glycemia?: GlycemiaInput;
 }
 
 export interface AddPrescriptionInput {

@@ -164,6 +164,7 @@ export class DoctorConsultationsService {
             orderBy: { measuredAt: 'desc' },
             take: 1,
           },
+          glycemiaCheck: true,
           _count: {
             select: {
               prescriptions: true,
@@ -209,6 +210,14 @@ export class DoctorConsultationsService {
           id: c.doctor.id,
           name: `Dr. ${c.doctor.firstName} ${c.doctor.lastName}`,
         },
+        glycemia: c.glycemiaCheck
+          ? {
+            performed: c.glycemiaCheck.performed,
+            value: c.glycemiaCheck.value ? Number(c.glycemiaCheck.value) : null,
+            unit: c.glycemiaCheck.unit,
+            measuredAt: c.glycemiaCheck.measuredAt,
+          }
+          : null,
         vitalSigns: latestVitals
           ? {
             ...latestVitals,
@@ -267,6 +276,7 @@ export class DoctorConsultationsService {
             email: true,
           },
         },
+        glycemiaCheck: true,
         vitalSigns: {
           orderBy: { measuredAt: 'desc' },
         },
@@ -293,6 +303,14 @@ export class DoctorConsultationsService {
 
     return {
       ...consultation,
+      glycemia: consultation.glycemiaCheck
+        ? {
+          performed: consultation.glycemiaCheck.performed,
+          value: consultation.glycemiaCheck.value ? Number(consultation.glycemiaCheck.value) : null,
+          unit: consultation.glycemiaCheck.unit,
+          measuredAt: consultation.glycemiaCheck.measuredAt,
+        }
+        : null,
       vitalSigns: consultation.vitalSigns.map((v) => ({
         ...v,
         weightKg: v.weightKg ? Number(v.weightKg) : null,
@@ -382,6 +400,19 @@ export class DoctorConsultationsService {
         });
       }
 
+      // Enregistrement du contrôle glycémique (1 contrôle = 1 bandelette consommée)
+      if (input.glycemia && input.glycemia.performed) {
+        await tx.glycemiaCheck.create({
+          data: {
+            consultationId: consultation.id,
+            patientId: input.patientId,
+            performed: true,
+            value: input.glycemia.value !== undefined ? new Prisma.Decimal(input.glycemia.value) : null,
+            unit: input.glycemia.unit ? input.glycemia.unit.trim() : 'g/L',
+          },
+        });
+      }
+
       return tx.consultation.findUnique({
         where: { id: consultation.id },
         include: {
@@ -397,8 +428,12 @@ export class DoctorConsultationsService {
             },
           },
           vitalSigns: true,
+          glycemiaCheck: true,
         },
       });
+    }, {
+      maxWait: 10000, // Attente max pour obtenir une connexion (10s)
+      timeout: 20000, // Durée max d'exécution de la transaction distante (20s)
     });
   }
 
@@ -449,7 +484,33 @@ export class DoctorConsultationsService {
         });
       }
 
-      // 2. Mise a jour de la consultation
+      // 2. Mise a jour ou enregistrement du contrôle glycémique
+      if (input.glycemia) {
+        if (input.glycemia.performed) {
+          await tx.glycemiaCheck.upsert({
+            where: { consultationId: id },
+            update: {
+              performed: true,
+              value: input.glycemia.value !== undefined ? new Prisma.Decimal(input.glycemia.value) : undefined,
+              unit: input.glycemia.unit ? input.glycemia.unit.trim() : undefined,
+            },
+            create: {
+              consultationId: id,
+              patientId: existing.patientId,
+              performed: true,
+              value: input.glycemia.value !== undefined ? new Prisma.Decimal(input.glycemia.value) : null,
+              unit: input.glycemia.unit ? input.glycemia.unit.trim() : 'g/L',
+            },
+          });
+        } else {
+          // Si explicitement performed: false, supprimer un éventuel contrôle existant
+          await tx.glycemiaCheck.deleteMany({
+            where: { consultationId: id },
+          });
+        }
+      }
+
+      // 3. Mise a jour de la consultation
       const updated = await tx.consultation.update({
         where: { id },
         data: {
@@ -485,11 +546,15 @@ export class DoctorConsultationsService {
           vitalSigns: {
             orderBy: { measuredAt: 'desc' },
           },
+          glycemiaCheck: true,
           prescriptions: true,
         },
       });
 
       return updated;
+    }, {
+      maxWait: 10000,
+      timeout: 20000,
     });
   }
 

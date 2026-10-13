@@ -18,6 +18,7 @@ import { UserRole } from '@prisma/client';
 import { authRoutes } from './modules/auth/auth.routes';
 import { patientsRoutes } from './modules/patients/patients.routes';
 import { doctorRoutes } from './modules/doctor/doctor.routes';
+import { hrRoutes } from './modules/hr/hr.routes';
 import { doctorConsultationsRoutes } from './modules/doctor/consultations/consultations.routes';
 import {
   authenticate,
@@ -95,6 +96,7 @@ export const createApp = (): Application => {
   app.use('/api/auth', authRoutes);
   app.use('/api/employees', patientsRoutes);
   app.use('/api/doctor', doctorRoutes);
+  app.use('/api/hr', hrRoutes);
 
   // Alias direct pour compatibilite avec les appels frontend /api/consultations
   app.use(

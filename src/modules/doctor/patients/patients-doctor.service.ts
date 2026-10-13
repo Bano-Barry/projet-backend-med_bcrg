@@ -112,9 +112,14 @@ export class PatientsDoctorService {
               },
             },
             prescriptions: true,
+            glycemiaCheck: true,
           },
         },
         vitalSigns: {
+          orderBy: { measuredAt: 'desc' },
+          take: 10,
+        },
+        glycemiaChecks: {
           orderBy: { measuredAt: 'desc' },
           take: 10,
         },
@@ -141,6 +146,17 @@ export class PatientsDoctorService {
       };
     });
 
+    const formattedGlycemiaHistory = patient.glycemiaChecks.map((g) => ({
+      id: g.id,
+      consultationId: g.consultationId,
+      performed: g.performed,
+      value: g.value ? Number(g.value) : null,
+      unit: g.unit,
+      measuredAt: g.measuredAt,
+    }));
+
+    const latestGlycemia = formattedGlycemiaHistory[0] || null;
+
     return {
       id: patient.id,
       registrationNumber: patient.registrationNumber,
@@ -162,9 +178,19 @@ export class PatientsDoctorService {
         diagnosis: c.diagnosis,
         advice: c.advice,
         doctorName: `Dr. ${c.doctor.firstName} ${c.doctor.lastName}`,
+        glycemia: c.glycemiaCheck
+          ? {
+            performed: c.glycemiaCheck.performed,
+            value: c.glycemiaCheck.value ? Number(c.glycemiaCheck.value) : null,
+            unit: c.glycemiaCheck.unit,
+            measuredAt: c.glycemiaCheck.measuredAt,
+          }
+          : null,
         prescriptionsCount: c.prescriptions.length,
       })),
       vitalSignsHistory: formattedVitals,
+      glycemiaHistory: formattedGlycemiaHistory,
+      latestGlycemiaSummary: latestGlycemia,
     };
   }
 }

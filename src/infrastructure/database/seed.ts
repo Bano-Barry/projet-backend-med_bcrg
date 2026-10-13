@@ -76,6 +76,20 @@ async function main() {
 
   console.log(`Compte RH cree : ${hrUser.matricule} (Role: ${hrUser.role})`);
 
+  // 4. Initialisation du stock theorique de bandelettes glycemiques
+  const glucoseStripsStock = await prisma.medicalSupplyStock.upsert({
+    where: { itemKey: 'GLUCOSE_STRIPS' },
+    update: {},
+    create: {
+      itemKey: 'GLUCOSE_STRIPS',
+      label: 'Bandelettes de contrôle glycémique',
+      initialStock: 100,
+      unit: 'bandelette',
+    },
+  });
+
+  console.log(`Stock initial de bandelettes initialise : ${glucoseStripsStock.initialStock} ${glucoseStripsStock.unit}s`);
+
   console.log('Ensemencement termine avec succes.');
   console.log('Mot de passe temporaire pour tous les comptes initiaux : ChangeMe@2026!');
 }

@@ -63,6 +63,9 @@ export class DoctorDashboardService {
       totalUsersCount,
       recentConsultationsRaw,
       weekConsultationsRaw,
+      totalGlycemiaChecks,
+      glucoseStockRecord,
+      diabeticConsultationsRaw,
     ] = await Promise.all([
       // Consultations du jour
       prisma.consultation.count({
@@ -143,6 +146,43 @@ export class DoctorDashboardService {
         select: {
           consultationDate: true,
         },
+      }),
+
+      // Total des contrôles glycémiques réalisés (1 test = 1 bandelette consommée)
+      prisma.glycemiaCheck.count({
+        where: { performed: true },
+      }),
+
+      // Stock de bandelettes paramétré
+      prisma.medicalSupplyStock.findUnique({
+        where: { itemKey: 'GLUCOSE_STRIPS' },
+      }),
+
+      // Consultations ou contrôles liés au diabète
+      prisma.consultation.findMany({
+        where: {
+          OR: [
+            { reason: { contains: 'diab', mode: 'insensitive' } },
+            { diagnosis: { contains: 'diab', mode: 'insensitive' } },
+            { glycemiaCheck: { performed: true } },
+          ],
+        },
+        include: {
+          patient: {
+            include: {
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  matricule: true,
+                  department: true,
+                },
+              },
+            },
+          },
+          glycemiaCheck: true,
+        },
+        orderBy: { consultationDate: 'desc' },
       }),
     ]);
 
@@ -258,6 +298,51 @@ export class DoctorDashboardService {
       },
     ];
 
+    // 8. Calcul des indicateurs diabète & passages mensuels
+    const initialStrips = glucoseStockRecord?.initialStock ?? 100;
+    const stripConsumption = totalGlycemiaChecks;
+    const remainingStrips = Math.max(0, initialStrips - stripConsumption);
+
+    // Patients uniques concernés par le diabète
+    const diabeticPatientMap = new Map<string, {
+      patientId: string;
+      patientName: string;
+      registrationNumber: string;
+      department?: string | null;
+      monthlyVisits: number;
+      lastCheckDate?: string | null;
+      lastGlycemiaValue?: number | null;
+      lastGlycemiaUnit?: string | null;
+    }>();
+
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    for (const c of diabeticConsultationsRaw) {
+      const pid = c.patientId;
+      const isThisMonth = new Date(c.consultationDate) >= startOfCurrentMonth;
+
+      if (!diabeticPatientMap.has(pid)) {
+        diabeticPatientMap.set(pid, {
+          patientId: pid,
+          patientName: `${c.patient.user.firstName} ${c.patient.user.lastName}`,
+          registrationNumber: c.patient.registrationNumber || c.patient.user.matricule,
+          department: c.patient.user.department,
+          monthlyVisits: isThisMonth ? 1 : 0,
+          lastCheckDate: c.glycemiaCheck ? c.glycemiaCheck.measuredAt.toISOString() : c.consultationDate.toISOString(),
+          lastGlycemiaValue: c.glycemiaCheck?.value ? Number(c.glycemiaCheck.value) : null,
+          lastGlycemiaUnit: c.glycemiaCheck?.unit ?? 'g/L',
+        });
+      } else {
+        const item = diabeticPatientMap.get(pid)!;
+        if (isThisMonth) {
+          item.monthlyVisits += 1;
+        }
+      }
+    }
+
+    const diabeticPatientsCount = diabeticPatientMap.size;
+    const diabeticMonthlyPassages = Array.from(diabeticPatientMap.values());
+
     return {
       kpis: {
         consultationsToday,
@@ -266,6 +351,13 @@ export class DoctorDashboardService {
         patientsExaminedCount: patientsExaminedList.length,
         usersCount: totalUsersCount,
       },
+      diabetesKpis: {
+        diabeticPatients: diabeticPatientsCount,
+        glycemiaChecks: totalGlycemiaChecks,
+        stripConsumption,
+        remainingStrips,
+      },
+      diabeticMonthlyPassages,
       weeklyActivity,
       alerts: {
         pendingCount: 0,

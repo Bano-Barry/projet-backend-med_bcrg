@@ -33,6 +33,16 @@ export const vitalSignsInputSchema = z.object({
 });
 
 /**
+ * Schema de saisie du controle glycemique dans la consultation.
+ * Regle : 1 controle effectue (performed: true) = 1 bandelette consommee.
+ */
+export const glycemiaInputSchema = z.object({
+  performed: z.boolean().default(true),
+  value: z.number().positive('La glycémie doit être une valeur positive').optional(),
+  unit: z.string().trim().default('g/L').optional(),
+});
+
+/**
  * Schema de creation / demarrage d'une consultation par le medecin.
  */
 export const createConsultationSchema = z.object({
@@ -54,6 +64,7 @@ export const createConsultationSchema = z.object({
     diagnosis: z.string().trim().optional().or(z.literal('')),
     advice: z.string().trim().optional().or(z.literal('')),
     vitals: vitalSignsInputSchema.optional(),
+    glycemia: glycemiaInputSchema.optional(),
   }),
 });
 
@@ -79,6 +90,7 @@ export const updateConsultationSchema = z.object({
     diagnosis: z.string().trim().optional().or(z.literal('')),
     advice: z.string().trim().optional().or(z.literal('')),
     vitals: vitalSignsInputSchema.optional(),
+    glycemia: glycemiaInputSchema.optional(),
   }),
 });
 
