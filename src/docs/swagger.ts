@@ -58,6 +58,10 @@ export const swaggerDocument = {
       name: 'Ressources Humaines & Reporting',
       description: 'Pilotage RH, indicateurs agreges, activite diabetique et export officiel de rapport PDF.',
     },
+    {
+      name: 'Espace Collaborateur - Patient',
+      description: 'Espace sante du collaborateur : historique des constantes vitales, consultation et televersement securise de documents (analyses, imagerie, ordonnances).',
+    },
   ],
   paths: {
     '/api/auth/login': {
@@ -1348,6 +1352,215 @@ export const swaggerDocument = {
             description: 'Acces reserve au role HR.',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
           },
+        },
+      },
+    },
+    '/api/patient/vitals': {
+      get: {
+        tags: ['Espace Collaborateur - Patient'],
+        summary: 'Historique des constantes vitales du collaborateur connecte',
+        description: 'Retourne les dernieres constantes (tension, poids, temperature, calcul IMC) et la liste chronologique des mesures realisees en consultation.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Constantes vitales recuperees avec succes.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  data: {
+                    summary: {
+                      bloodPressure: '120/80',
+                      weightKg: 75,
+                      heightCm: 175,
+                      temperatureC: 36.8,
+                      bmi: 24.5,
+                      bmiLabel: 'Normal',
+                      bloodGroup: 'O+',
+                      lastVisitDate: '2026-06-15T10:00:00.000Z',
+                    },
+                    history: [
+                      {
+                        id: 'uuid-vital',
+                        consultationId: 'uuid-consultation',
+                        measuredAt: '2026-06-15T10:00:00.000Z',
+                        bloodPressure: '120/80',
+                        temperatureC: 36.8,
+                        weightKg: 75,
+                        heightCm: 175,
+                        bmi: 24.5,
+                        bmiLabel: 'Normal',
+                        bloodGroup: 'O+',
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          401: { description: 'Non authentifie.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Fiche employe introuvable.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
+    '/api/patient/documents': {
+      get: {
+        tags: ['Espace Collaborateur - Patient'],
+        summary: 'Liste de tous les documents medicaux du collaborateur',
+        description: 'Retourne l\'ensemble des documents du dossier : ordonnances emises par l\'infirmerie et documents de sante importes par le collaborateur.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Liste des documents recuperee avec succes.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  data: [
+                    {
+                      id: 'uuid-doc-1',
+                      title: 'Ordonnance - 15 Juin 2026',
+                      documentType: 'PRESCRIPTION',
+                      mimeType: 'application/pdf',
+                      fileSizeBytes: 24500,
+                      createdAt: '2026-06-15T10:30:00.000Z',
+                      isDoctorGenerated: true,
+                      downloadUrl: '/api/patient/documents/uuid-doc-1/download',
+                      viewUrl: '/api/patient/documents/uuid-doc-1/view',
+                    },
+                    {
+                      id: 'uuid-doc-2',
+                      title: 'Analyses_Sanguines_Juin2026.pdf',
+                      documentType: 'LAB_RESULT',
+                      mimeType: 'application/pdf',
+                      fileSizeBytes: 142000,
+                      createdAt: '2026-06-12T14:15:00.000Z',
+                      isDoctorGenerated: false,
+                      downloadUrl: '/api/patient/documents/uuid-doc-2/download',
+                      viewUrl: '/api/patient/documents/uuid-doc-2/view',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          401: { description: 'Non authentifie.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
+    '/api/patient/documents/upload': {
+      post: {
+        tags: ['Espace Collaborateur - Patient'],
+        summary: 'Importer un document medical (analyses, imagerie, compte rendu)',
+        description: 'Permet au collaborateur de televerser un document externe (PDF, JPG, PNG jusqu\'a 10 Mo) en specifiant la categorie.',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['documentType', 'file'],
+                properties: {
+                  documentType: {
+                    type: 'string',
+                    enum: ['LAB_RESULT', 'SPECIALIST_REPORT', 'IMAGING', 'MEDICAL_CERTIFICATE', 'OTHER'],
+                    description: 'Type de document médical',
+                    example: 'LAB_RESULT',
+                  },
+                  file: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Fichier PDF, JPEG ou PNG (max 10 Mo)',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Document importe avec succes.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  message: 'Document médical importé avec succès dans votre dossier.',
+                  data: {
+                    id: 'uuid-doc',
+                    title: 'Bilan_Sanguin.pdf',
+                    documentType: 'LAB_RESULT',
+                    mimeType: 'application/pdf',
+                    fileSizeBytes: 85200,
+                    createdAt: '2026-10-15T11:20:00.000Z',
+                    isDoctorGenerated: false,
+                    downloadUrl: '/api/patient/documents/uuid-doc/download',
+                    viewUrl: '/api/patient/documents/uuid-doc/view',
+                  },
+                },
+              },
+            },
+          },
+          400: { description: 'Fichier manquant, format non autorise ou taille superieure a 10 Mo.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          401: { description: 'Non authentifie.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
+    '/api/patient/documents/{id}/view': {
+      get: {
+        tags: ['Espace Collaborateur - Patient'],
+        summary: 'Visualiser un document en ligne (PDF / Image)',
+        description: 'Affiche directement le document dans le navigateur ou dans la visionneuse de documents (Content-Disposition: inline). Protege par verification de propriete.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant UUID du document',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Flux binaire du fichier (PDF ou Image).',
+            content: {
+              'application/pdf': { schema: { type: 'string', format: 'binary' } },
+              'image/jpeg': { schema: { type: 'string', format: 'binary' } },
+              'image/png': { schema: { type: 'string', format: 'binary' } },
+            },
+          },
+          401: { description: 'Non authentifie.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Document introuvable ou n\'appartenant pas au collaborateur.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
+    '/api/patient/documents/{id}/download': {
+      get: {
+        tags: ['Espace Collaborateur - Patient'],
+        summary: 'Telecharger un document medical',
+        description: 'Declenche le telechargement securise du document en piece jointe (Content-Disposition: attachment).',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant UUID du document',
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Fichier binaire en telechargement.',
+            content: {
+              'application/pdf': { schema: { type: 'string', format: 'binary' } },
+              'image/jpeg': { schema: { type: 'string', format: 'binary' } },
+              'image/png': { schema: { type: 'string', format: 'binary' } },
+            },
+          },
+          401: { description: 'Non authentifie.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Document introuvable ou n\'appartenant pas au collaborateur.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },

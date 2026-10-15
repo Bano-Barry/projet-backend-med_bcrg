@@ -239,6 +239,7 @@ model MedicalDocument {
   consultation Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
   uploader     User          @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
 
+  @@index([patientId])
   @@map("medical_documents")
 }
 
