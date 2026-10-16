@@ -8,6 +8,7 @@
 import { createApp } from './app';
 import { env } from './config/env';
 import { prisma } from './infrastructure/database/prisma';
+import { autoCompletePastAppointments } from './modules/patient/appointments/patient-appointments.service';
 
 const app = createApp();
 
@@ -22,12 +23,29 @@ const server = app.listen(env.PORT, () => {
 });
 
 /**
+ * Tâche d'arrière-plan récurrente : bascule à COMPLETED les rendez-vous dont l'horaire
+ * est dépassé de plus de 15 minutes (exécutée toutes les 5 minutes).
+ */
+const appointmentAutoCloseInterval = setInterval(async () => {
+  try {
+    const updatedCount = await autoCompletePastAppointments();
+    if (updatedCount > 0) {
+      console.log(`[Rendez-vous] ${updatedCount} rendez-vous passé(s) de plus de 15 min basculé(s) au statut COMPLETED.`);
+    }
+  } catch (error) {
+    console.error('[Rendez-vous] Erreur lors de l\'auto-complétion des rendez-vous passés :', error);
+  }
+}, 5 * 60 * 1000);
+appointmentAutoCloseInterval.unref();
+
+/**
  * Effectue l'arret gracieux du serveur HTTP et ferme les connexions a la base de donnees.
  *
  * @param signal Signal d'arret recu par le processus (ex: SIGINT, SIGTERM)
  */
 const gracefulShutdown = async (signal: string): Promise<void> => {
   console.log(`\nSignal ${signal} recu. Fermeture gracieuse en cours...`);
+  clearInterval(appointmentAutoCloseInterval);
 
   server.close(async () => {
     console.log('Serveur HTTP ferme.');

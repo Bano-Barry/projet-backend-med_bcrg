@@ -62,6 +62,56 @@ const FRENCH_MONTHS = [
   'Décembre',
 ];
 
+/**
+ * Bascule automatiquement au statut COMPLETED tout rendez-vous CONFIRMED ou RESCHEDULED
+ * dont l'horaire de consultation est dépassé de plus de 15 minutes.
+ */
+export async function autoCompletePastAppointments(): Promise<number> {
+  const now = new Date();
+  const endOfToday = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59)
+  );
+
+  const candidates = await prisma.appointment.findMany({
+    where: {
+      appointmentDate: { lte: endOfToday },
+      status: {
+        in: [AppointmentStatus.CONFIRMED, AppointmentStatus.RESCHEDULED],
+      },
+    },
+    select: {
+      id: true,
+      appointmentDate: true,
+      scheduledTime: true,
+    },
+  });
+
+  const expiredIds: string[] = [];
+  for (const app of candidates) {
+    const d = app.appointmentDate;
+    const [hours, minutes] = app.scheduledTime.split(':').map(Number);
+    const appTime = new Date(
+      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hours, minutes, 0)
+    );
+    // Dépassement de 15 minutes
+    const threshold = appTime.getTime() + 15 * 60 * 1000;
+
+    if (now.getTime() >= threshold) {
+      expiredIds.push(app.id);
+    }
+  }
+
+  if (expiredIds.length > 0) {
+    const result = await prisma.appointment.updateMany({
+      where: { id: { in: expiredIds } },
+      data: { status: AppointmentStatus.COMPLETED },
+    });
+    return result.count;
+  }
+
+  return 0;
+}
+
 export class PatientAppointmentsService {
   /**
    * Formate une date en français (ex: "Vendredi 16 Octobre 2026").
@@ -381,6 +431,9 @@ export class PatientAppointmentsService {
    * Retourne tous les rendez-vous du collaborateur connecté.
    */
   async getMyAppointments(userId: string): Promise<PatientAppointmentItem[]> {
+    // Actualisation automatique des rendez-vous dépassés de plus de 15 minutes
+    await autoCompletePastAppointments();
+
     const patient = await this.getPatientByUserId(userId);
 
     const appointments = await prisma.appointment.findMany({

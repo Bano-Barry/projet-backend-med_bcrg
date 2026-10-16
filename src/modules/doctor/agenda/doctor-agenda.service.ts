@@ -12,7 +12,10 @@ import {
   RescheduleAppointmentInput,
   ApproveAppointmentInput,
 } from './doctor-agenda.types';
-import { STANDARD_DAILY_SLOTS } from '../../patient/appointments/patient-appointments.service';
+import {
+  STANDARD_DAILY_SLOTS,
+  autoCompletePastAppointments,
+} from '../../patient/appointments/patient-appointments.service';
 
 const FRENCH_DAYS = [
   'Dimanche',
@@ -133,6 +136,9 @@ export class DoctorAgendaService {
    * Récupère la liste des rendez-vous sur une plage temporelle (ex: vue Semaine ou vue Mois).
    */
   async getAgenda(startDateStr: string, endDateStr: string): Promise<DoctorAgendaItem[]> {
+    // Actualisation automatique des rendez-vous dépassés de plus de 15 minutes
+    await autoCompletePastAppointments();
+
     const startDate = new Date(`${startDateStr}T00:00:00Z`);
     const endDate = new Date(`${endDateStr}T23:59:59Z`);
 
@@ -167,6 +173,9 @@ export class DoctorAgendaService {
    * Récupère le détail des rendez-vous d'une journée précise (pour le volet latéral droit).
    */
   async getDayDetails(dateStr: string): Promise<DoctorDayAgendaResponse> {
+    // Actualisation automatique des rendez-vous dépassés de plus de 15 minutes
+    await autoCompletePastAppointments();
+
     const targetDate = new Date(`${dateStr}T00:00:00Z`);
     if (isNaN(targetDate.getTime())) {
       throw new BadRequestError('Format de date invalide (attendu: YYYY-MM-DD)');
