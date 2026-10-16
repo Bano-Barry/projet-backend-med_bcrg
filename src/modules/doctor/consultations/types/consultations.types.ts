@@ -31,6 +31,14 @@ export interface CreateConsultationInput {
   glycemia?: GlycemiaInput;
 }
 
+export interface CompleteConsultationInput {
+  diagnosis?: string;
+  physicalExamination?: string;
+  advice?: string;
+  vitals?: VitalSignsInput;
+  glycemia?: GlycemiaInput;
+}
+
 export interface UpdateConsultationInput {
   status?: ConsultationStatus;
   type?: ConsultationType;

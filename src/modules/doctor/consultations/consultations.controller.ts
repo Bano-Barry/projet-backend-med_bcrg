@@ -107,6 +107,27 @@ export class DoctorConsultationsController {
   }
 
   /**
+   * Cloture explicitement une consultation (statut COMPLETED).
+   */
+  async completeConsultation(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const id = String(req.params.id);
+      const completed = await doctorConsultationsService.completeConsultation(
+        id,
+        req.body
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Consultation clôturée avec succès (statut COMPLETED).',
+        data: completed,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Ajoute une prescription d'ordonnance a la consultation en cours.
    */
   async addPrescription(req: Request, res: Response, next: NextFunction): Promise<void> {

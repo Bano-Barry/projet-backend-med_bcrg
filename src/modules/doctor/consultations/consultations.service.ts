@@ -11,6 +11,7 @@ import {
   VitalSignsInput,
   CreateConsultationInput,
   UpdateConsultationInput,
+  CompleteConsultationInput,
   AddPrescriptionInput,
   ConsultationListQueryParams,
 } from './types/consultations.types';
@@ -559,7 +560,30 @@ export class DoctorConsultationsService {
   }
 
   /**
-   * Ajoute une  a une consultation.
+   * Clôture explicitement une consultation en lui attribuant le statut COMPLETED.
+   * Permet également de renseigner ou finaliser le diagnostic, l'examen clinique, les conseils ou les constantes.
+   */
+  async completeConsultation(id: string, input?: CompleteConsultationInput) {
+    const existing = await prisma.consultation.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundError('Consultation introuvable');
+    }
+
+    if (existing.status === ConsultationStatus.CANCELLED) {
+      throw new BadRequestError('Impossible de clôturer une consultation qui a été annulée.');
+    }
+
+    return this.updateConsultation(id, {
+      ...input,
+      status: ConsultationStatus.COMPLETED,
+    });
+  }
+
+  /**
+   * Ajoute une prescription a une consultation.
    */
   async addPrescription(consultationId: string, input: AddPrescriptionInput) {
     const consultation = await prisma.consultation.findUnique({

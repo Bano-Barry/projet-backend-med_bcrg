@@ -95,6 +95,23 @@ export const updateConsultationSchema = z.object({
 });
 
 /**
+ * Schema de cloture explicite d'une consultation (passage a COMPLETED).
+ */
+export const completeConsultationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Identifiant consultation invalide'),
+  }),
+  body: z.object({
+    diagnosis: z.string().trim().optional().or(z.literal('')),
+    physicalExamination: z.string().trim().optional().or(z.literal('')),
+    advice: z.string().trim().optional().or(z.literal('')),
+    vitals: vitalSignsInputSchema.optional(),
+    glycemia: glycemiaInputSchema.optional(),
+  }).optional(),
+});
+
+
+/**
  * Schema pour ajouter une ligne de prescription (ordonnance).
  */
 export const addPrescriptionSchema = z.object({

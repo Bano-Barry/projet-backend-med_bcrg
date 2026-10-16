@@ -1249,6 +1249,79 @@
         }
       }
     },
+    "/api/doctor/consultations/{id}/complete": {
+      "post": {
+        "tags": [
+          "Medecin - Consultations"
+        ],
+        "summary": "Clôturer la consultation clinique (statut COMPLETED)",
+        "description": "Termine officiellement la consultation clinique en lui attribuant le statut COMPLETED. Permet facultativement d'enregistrer en même temps le diagnostic final, l'examen clinique ou les constantes.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identifiant UUID de la consultation",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConsultationInput"
+              },
+              "example": {
+                "diagnosis": "Paludisme simple traité",
+                "physicalExamination": "Apyrétique, bon état général",
+                "advice": "Poursuite du repos 48h et bonne hydratation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Consultation clôturée avec succès.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Action impossible (ex: consultation déjà annulée).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Consultation introuvable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/doctor/consultations/{id}/prescriptions": {
       "post": {
         "tags": [

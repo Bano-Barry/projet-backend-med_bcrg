@@ -10,6 +10,7 @@ import { doctorDocumentsController } from '../documents/doctor-documents.control
 import {
   createConsultationSchema,
   updateConsultationSchema,
+  completeConsultationSchema,
   addPrescriptionSchema,
   deletePrescriptionSchema,
   listConsultationsQuerySchema,
@@ -49,12 +50,21 @@ router.post(
 );
 
 /**
- * Mettre a jour ou cloturer une consultation existante.
+ * Mettre a jour une consultation existante.
  */
 router.patch(
   '/:id',
   validateRequest(updateConsultationSchema),
   doctorConsultationsController.updateConsultation.bind(doctorConsultationsController)
+);
+
+/**
+ * Clôturer explicitement une consultation (statut COMPLETED).
+ */
+router.post(
+  '/:id/complete',
+  validateRequest(completeConsultationSchema),
+  doctorConsultationsController.completeConsultation.bind(doctorConsultationsController)
 );
 
 
