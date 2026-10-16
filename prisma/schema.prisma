@@ -52,6 +52,18 @@ enum ConsultationType {
   @@map("consultation_type_enum")
 }
 
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  RESCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+
+  @@map("appointment_status_enum")
+}
+
 // ==============================================================================
 // 1. UTILISATEURS & AUTHENTIFICATION
 // ==============================================================================
@@ -74,6 +86,7 @@ model User {
 
   patient             Patient?
   doctorConsultations Consultation[]    @relation("DoctorConsultations")
+  doctorAppointments  Appointment[]     @relation("DoctorAppointments")
   uploadedDocuments   MedicalDocument[] @relation("DocumentUploader")
   auditLogs           AuditLog[]        @relation("ActorAuditLogs")
 
@@ -98,6 +111,7 @@ model Patient {
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   allergies        PatientAllergy[]
   consultations    Consultation[]
+  appointments     Appointment[]
   vitalSigns       VitalSign[]
   glycemiaChecks   GlycemiaCheck[]
   sickLeaves       SickLeave[]
@@ -300,3 +314,46 @@ model MedicalSupplyStock {
 
   @@map("medical_supply_stocks")
 }
+
+// ==============================================================================
+// 12. RENDEZ-VOUS MEDICAUX (PATIENT & AGENDA MEDECIN)
+// ==============================================================================
+model Appointment {
+  id                 String            @id @default(uuid()) @db.Uuid
+  patientId          String            @map("patient_id") @db.Uuid
+  doctorId           String?           @map("doctor_id") @db.Uuid
+  appointmentDate    DateTime          @map("appointment_date") @db.Date
+  scheduledTime      String            @map("scheduled_time") @db.VarChar(10) // "09:00", "14:30"
+  durationMinutes    Int               @default(30) @map("duration_minutes")
+  type               ConsultationType  @default(GENERAL)
+  status             AppointmentStatus @default(SCHEDULED)
+  reason             String?           @db.Text
+  doctorNotes        String?           @map("doctor_notes") @db.Text
+  cancellationReason String?           @map("cancellation_reason") @db.Text
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor       User?         @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: SetNull)
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([appointmentDate])
+  @@index([status])
+  @@map("appointments")
+}
+
+// ==============================================================================
+// 13. CONFIGURATION PERIODICITE DES VISITES (ADMIN / RH)
+// ==============================================================================
+model VisitPeriodicitySetting {
+  id                      String   @id @default(uuid()) @db.Uuid
+  standardFrequencyMonths Int      @default(12) @map("standard_frequency_months") // Standard (12 mois)
+  smrFrequencyMonths      Int      @default(6)  @map("smr_frequency_months")      // SMR (6 mois)
+  reminderLeadDays        Int      @default(30) @map("reminder_lead_days")        // Relance RH (30 jours)
+  updatedBy               String?  @map("updated_by") @db.Uuid
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("visit_periodicity_settings")
+}
+

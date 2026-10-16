@@ -54,4 +54,12 @@ router.get('/documents/:id/view', (req, res, next) => patientController.viewDocu
  */
 router.get('/documents/:id/download', (req, res, next) => patientController.downloadDocument(req, res, next));
 
+/**
+ * Sous-module : Prise et gestion des rendez-vous
+ * Routes : /api/patient/appointments
+ */
+import { patientAppointmentsRoutes } from './appointments/patient-appointments.routes';
+router.use('/appointments', patientAppointmentsRoutes);
+
 export const patientRoutes = router;
+

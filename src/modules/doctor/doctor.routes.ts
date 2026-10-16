@@ -16,6 +16,7 @@ import { patientsDoctorRoutes } from './patients/patients-doctor.routes';
 
 import { doctorDocumentsController } from './documents/doctor-documents.controller';
 import { doctorDashboardController } from './dashboard/doctor-dashboard.controller';
+import { doctorAgendaRoutes } from './agenda/doctor-agenda.routes';
 
 const router = Router();
 
@@ -35,7 +36,11 @@ router.get('/dashboard', doctorDashboardController.getDashboard.bind(doctorDashb
 router.use('/consultations', doctorConsultationsRoutes);
 router.use('/patients', patientsDoctorRoutes);
 
-// 5. Consultation et telechargement de documents medicaux (ordonnances, etc.)
+// Agenda et gestion des rendez-vous
+router.use('/agenda', doctorAgendaRoutes);
+router.use('/appointments', doctorAgendaRoutes);
+
+// 6. Consultation et telechargement de documents medicaux (ordonnances, etc.)
 router.get(
   '/documents/:documentId/view',
   doctorDocumentsController.viewDocument.bind(doctorDocumentsController)
@@ -46,4 +51,5 @@ router.get(
 );
 
 export const doctorRoutes = router;
+
 

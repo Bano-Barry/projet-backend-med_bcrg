@@ -44,4 +44,12 @@ router.get('/statistics/diabetes', (req, res, next) =>
  */
 router.get('/reports/export', (req, res, next) => hrController.exportReport(req, res, next));
 
+/**
+ * Sous-module : Configuration de la périodicité des visites obligatoires et relances
+ * Routes : /api/hr/periodicity
+ */
+import { hrPeriodicityRoutes } from './periodicity/hr-periodicity.routes';
+router.use('/periodicity', hrPeriodicityRoutes);
+
 export const hrRoutes = router;
+

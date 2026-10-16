@@ -98,6 +98,7 @@ export const createApp = (): Application => {
   app.use('/api/employees', patientsRoutes);
   app.use('/api/doctor', doctorRoutes);
   app.use('/api/hr', hrRoutes);
+  app.use('/api/admin', hrRoutes);
   app.use('/api/patient', patientRoutes);
 
   // Alias direct pour compatibilite avec les appels frontend /api/consultations

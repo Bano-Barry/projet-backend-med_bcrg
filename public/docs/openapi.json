@@ -47,6 +47,14 @@
     {
       "name": "Espace Collaborateur - Patient",
       "description": "Espace sante du collaborateur : historique des constantes vitales, consultation et televersement securise de documents (analyses, imagerie, ordonnances)."
+    },
+    {
+      "name": "Medecin - Agenda & Rendez-vous",
+      "description": "Agenda medical, calendrier hebdomadaire et mensuel, approbation, reprogrammation et demarrage de consultation."
+    },
+    {
+      "name": "Ressources Humaines - Periodicite des Visites",
+      "description": "Politique de medecine du travail, periodicite des visites obligatoires (Standard, SMR) et relances automatiques."
     }
   ],
   "paths": {
@@ -2266,6 +2274,723 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patient/appointments/available-days": {
+      "get": {
+        "tags": [
+          "Espace Collaborateur - Patient"
+        ],
+        "summary": "Calendrier mensuel des disponibilités",
+        "description": "Retourne pour chaque jour du mois son statut d'ouverture (ouvert, weekend, passe) et le nombre de creneaux disponibles.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "description": "Mois recherche au format YYYY-MM (ex: 2026-10)",
+            "schema": {
+              "type": "string",
+              "example": "2026-10"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disponibilites du mois recuperees avec succes.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "month": "2026-10",
+                    "days": [
+                      {
+                        "date": "2026-10-15",
+                        "dayNumber": 15,
+                        "dayOfWeek": 4,
+                        "dayName": "Jeudi",
+                        "isPast": false,
+                        "isWeekend": false,
+                        "isAvailable": true,
+                        "availableSlotsCount": 12
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Format de mois invalide.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patient/appointments/available-slots": {
+      "get": {
+        "tags": [
+          "Espace Collaborateur - Patient"
+        ],
+        "summary": "Creneaux horaires disponibles pour un jour donne",
+        "description": "Calcule dynamiquement les creneaux horaires de 30 minutes encore libres (de 08h00 a 16h00) pour une date precise.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "Date cible au format YYYY-MM-DD (ex: 2026-10-16)",
+            "schema": {
+              "type": "string",
+              "example": "2026-10-16"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Creneaux disponibles recuperes avec succes.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "date": "2026-10-16",
+                    "formattedDate": "Vendredi 16 Octobre 2026",
+                    "isWorkingDay": true,
+                    "totalSlots": 19,
+                    "availableSlots": [
+                      "08:00",
+                      "08:30",
+                      "09:00",
+                      "09:30",
+                      "10:00",
+                      "10:30",
+                      "11:00",
+                      "11:30",
+                      "12:00",
+                      "12:30",
+                      "13:00",
+                      "13:30",
+                      "14:00",
+                      "14:30",
+                      "15:00",
+                      "15:30",
+                      "16:00",
+                      "16:30",
+                      "17:00"
+                    ],
+                    "occupiedSlots": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Date invalide ou fermee.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patient/appointments": {
+      "post": {
+        "tags": [
+          "Espace Collaborateur - Patient"
+        ],
+        "summary": "Reserver un nouveau rendez-vous medical",
+        "description": "Permet au collaborateur de reserver un creneau de consultation a l'infirmerie BCRG. Le rendez-vous est cree en statut PROGRAMME.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "appointmentDate",
+                  "scheduledTime",
+                  "type"
+                ],
+                "properties": {
+                  "appointmentDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-10-16"
+                  },
+                  "scheduledTime": {
+                    "type": "string",
+                    "example": "09:00"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "GENERAL",
+                      "PERIODIC",
+                      "INSTANT"
+                    ],
+                    "example": "GENERAL"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "example": "Consultation générale et renouvellement d'ordonnance"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Rendez-vous reserve avec succes.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Votre rendez-vous a été programmé avec succès.",
+                  "data": {
+                    "id": "uuid-appointment",
+                    "appointmentDate": "2026-10-16",
+                    "formattedDate": "Vendredi 16 Octobre 2026",
+                    "scheduledTime": "09:00",
+                    "durationMinutes": 30,
+                    "type": "GENERAL",
+                    "typeLabel": "Consultation Générale",
+                    "status": "SCHEDULED",
+                    "statusLabel": "PROGRAMMÉ",
+                    "statusColor": "yellow",
+                    "reason": "Consultation générale"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Creneau deja occupe ou date invalide.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patient/appointments/my": {
+      "get": {
+        "tags": [
+          "Espace Collaborateur - Patient"
+        ],
+        "summary": "Liste de mes rendez-vous",
+        "description": "Retourne l'ensemble des rendez-vous a venir et passes du collaborateur connecte.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des rendez-vous recuperee avec succes.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "id": "uuid-app-1",
+                      "appointmentDate": "2026-10-16",
+                      "formattedDate": "Vendredi 16 Octobre 2026",
+                      "scheduledTime": "09:00",
+                      "type": "GENERAL",
+                      "typeLabel": "Consultation Générale",
+                      "status": "SCHEDULED",
+                      "statusLabel": "PROGRAMMÉ",
+                      "statusColor": "yellow"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patient/appointments/{id}/cancel": {
+      "patch": {
+        "tags": [
+          "Espace Collaborateur - Patient"
+        ],
+        "summary": "Annuler un rendez-vous (patient)",
+        "description": "Permet au collaborateur d'annuler une reservation medicale.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "example": "Contrainte professionnelle imprevue"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rendez-vous annule avec succes."
+          },
+          "404": {
+            "description": "Rendez-vous introuvable."
+          }
+        }
+      }
+    },
+    "/api/doctor/agenda": {
+      "get": {
+        "tags": [
+          "Medecin - Agenda & Rendez-vous"
+        ],
+        "summary": "Vue calendrier de l'agenda medical (semaine ou mois)",
+        "description": "Retourne tous les rendez-vous programmes et confirmes sur une plage temporelle avec l'identite du patient.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-10-12"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-10-16"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agenda recupere avec succes.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "id": "uuid-1",
+                      "appointmentDate": "2026-10-15",
+                      "formattedDate": "Jeudi 15 Octobre 2026",
+                      "scheduledTime": "09:30",
+                      "patientName": "Mamadou Diallo",
+                      "patientMatricule": "MAT-2026-001",
+                      "type": "GENERAL",
+                      "typeLabel": "Consultation Générale",
+                      "status": "CONFIRMED",
+                      "statusLabel": "CONFIRMÉ",
+                      "statusColor": "green"
+                    },
+                    {
+                      "id": "uuid-2",
+                      "appointmentDate": "2026-10-15",
+                      "formattedDate": "Jeudi 15 Octobre 2026",
+                      "scheduledTime": "14:00",
+                      "patientName": "Aïssatou Camara",
+                      "patientMatricule": "MAT-2026-002",
+                      "type": "GENERAL",
+                      "typeLabel": "Visite d'embauche",
+                      "status": "SCHEDULED",
+                      "statusLabel": "PROGRAMMÉ",
+                      "statusColor": "yellow"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/doctor/agenda/day/{date}": {
+      "get": {
+        "tags": [
+          "Medecin - Agenda & Rendez-vous"
+        ],
+        "summary": "Detail journalier pour le volet lateral droit",
+        "description": "Fournit la liste complete et ordonnee des rendez-vous d'une journee avec les motifs et actions rapides (approuver, reprogrammer).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-10-15"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detail de la journee recupere avec succes.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "date": "2026-10-15",
+                    "formattedDate": "Jeudi 15 Octobre",
+                    "totalAppointments": 2,
+                    "appointments": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/doctor/agenda/appointments/{id}/approve": {
+      "patch": {
+        "tags": [
+          "Medecin - Agenda & Rendez-vous"
+        ],
+        "summary": "Approuver un rendez-vous (PROGRAMME -> CONFIRME)",
+        "description": "Le medecin valide la demande de rendez-vous d'un patient.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "doctorNotes": {
+                    "type": "string",
+                    "example": "Confirme pour 09:30"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rendez-vous approuve avec succes."
+          }
+        }
+      }
+    },
+    "/api/doctor/agenda/appointments/{id}/reschedule": {
+      "patch": {
+        "tags": [
+          "Medecin - Agenda & Rendez-vous"
+        ],
+        "summary": "Reprogrammer un rendez-vous",
+        "description": "Deplace le rendez-vous vers une autre date et un autre creneau.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "newDate",
+                  "newTime"
+                ],
+                "properties": {
+                  "newDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-10-19"
+                  },
+                  "newTime": {
+                    "type": "string",
+                    "example": "11:00"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "example": "Indisponibilite du praticien"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rendez-vous reprogramme avec succes."
+          }
+        }
+      }
+    },
+    "/api/doctor/agenda/appointments/{id}/cancel": {
+      "patch": {
+        "tags": [
+          "Medecin - Agenda & Rendez-vous"
+        ],
+        "summary": "Annuler ou refuser un rendez-vous (medecin)",
+        "description": "Annule un rendez-vous avec notification du motif.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "example": "Urgence hospitaliere"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rendez-vous annule."
+          }
+        }
+      }
+    },
+    "/api/hr/periodicity/settings": {
+      "get": {
+        "tags": [
+          "Ressources Humaines - Periodicite des Visites"
+        ],
+        "summary": "Parametres actuels de periodicite des visites obligatoires",
+        "description": "Retourne les frequences definies pour le personnel standard (12 mois), le Suivi Medical Renforce - SMR (6 mois) et le delai d'alerte RH (30 jours).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration recuperee avec succes.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "uuid-setting",
+                    "standardFrequencyMonths": 12,
+                    "standardFrequencyLabel": "Tous les 12 mois",
+                    "smrFrequencyMonths": 6,
+                    "smrFrequencyLabel": "Tous les 6 mois",
+                    "reminderLeadDays": 30,
+                    "reminderLeadLabel": "30 jours avant",
+                    "updatedAt": "2026-10-15T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Ressources Humaines - Periodicite des Visites"
+        ],
+        "summary": "Enregistrer les modifications de periodicite",
+        "description": "Met a jour la politique de periodicite des visites medicales.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "standardFrequencyMonths",
+                  "smrFrequencyMonths",
+                  "reminderLeadDays"
+                ],
+                "properties": {
+                  "standardFrequencyMonths": {
+                    "type": "integer",
+                    "example": 12
+                  },
+                  "smrFrequencyMonths": {
+                    "type": "integer",
+                    "example": 6
+                  },
+                  "reminderLeadDays": {
+                    "type": "integer",
+                    "example": 30
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration enregistree avec succes."
+          }
+        }
+      }
+    },
+    "/api/hr/periodicity/due-employees": {
+      "get": {
+        "tags": [
+          "Ressources Humaines - Periodicite des Visites"
+        ],
+        "summary": "Suivi et relances des visites medicales obligatoires",
+        "description": "Analyse l'ensemble des employes, detecte le profil SMR (chauffeurs, gardes, convoyeurs), calcule les prochaines echeances et fournit le taux de couverture.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Synthese et liste des employes a relancer.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "totalEmployees": 3,
+                    "upToDateCount": 3,
+                    "dueSoonCount": 0,
+                    "overdueCount": 0,
+                    "smrCount": 1,
+                    "coverageRatePercent": 100,
+                    "employees": [
+                      {
+                        "patientId": "uuid-patient",
+                        "matricule": "MAT-2026-001",
+                        "fullName": "Mamadou Diallo",
+                        "department": "Direction Informatique",
+                        "jobTitle": "Ingénieur Systèmes",
+                        "isSmr": false,
+                        "frequencyMonths": 12,
+                        "lastVisitFormatted": "15 oct. 2026",
+                        "nextDueDateFormatted": "15 oct. 2027",
+                        "daysRemaining": 365,
+                        "status": "UP_TO_DATE",
+                        "statusLabel": "À jour"
+                      }
+                    ]
+                  }
                 }
               }
             }

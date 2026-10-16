@@ -90,6 +90,19 @@ async function main() {
 
   console.log(`Stock initial de bandelettes initialise : ${glucoseStripsStock.initialStock} ${glucoseStripsStock.unit}s`);
 
+  // 5. Initialisation de la configuration par defaut de periodicite des visites
+  const existingPeriodicity = await prisma.visitPeriodicitySetting.findFirst();
+  if (!existingPeriodicity) {
+    const defaultPeriodicity = await prisma.visitPeriodicitySetting.create({
+      data: {
+        standardFrequencyMonths: 12,
+        smrFrequencyMonths: 6,
+        reminderLeadDays: 30,
+      },
+    });
+    console.log(`Configuration de périodicité initialisée : Standard ${defaultPeriodicity.standardFrequencyMonths} mois, SMR ${defaultPeriodicity.smrFrequencyMonths} mois, Relance ${defaultPeriodicity.reminderLeadDays} jours`);
+  }
+
   console.log('Ensemencement termine avec succes.');
   console.log('Mot de passe temporaire pour tous les comptes initiaux : ChangeMe@2026!');
 }
